@@ -22,33 +22,15 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'"
+      "csp": null
     }
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "deb",
-      "appimage",
-      "dmg",
-      "msi"
-    ],
-    "deb": {
-      "depends": []
-    },
+    "targets": ["deb", "appimage", "dmg", "msi"],
     "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "10.13"
-    },
-    "windows": {
-      "certificateThumbprint": null,
-      "digestAlgorithm": "sha256",
-      "timestampUrl": ""
-    },
-    "linux": {
-      "deb": {
-        "depends": []
-      }
     }
   }
 }

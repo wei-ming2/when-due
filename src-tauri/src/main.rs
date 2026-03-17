@@ -5,12 +5,12 @@ pub mod utils;
 
 use tauri::Manager;
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+fn main() {
   tauri::Builder::default()
     .setup(|app| {
       // Initialize database
-      db::init(app)?;
+      let _handle = app.app_handle();
+      db::init(&app.app_handle())?;
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![

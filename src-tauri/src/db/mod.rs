@@ -5,8 +5,6 @@ use rusqlite::Connection;
 use std::path::PathBuf;
 use tauri::AppHandle;
 
-pub mod queries;
-
 pub fn init(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
   let db_path = get_db_path(app)?;
   
@@ -24,10 +22,24 @@ pub fn init(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
   Ok(())
 }
 
-pub fn get_db_path(app: &AppHandle) -> Result<PathBuf, Box<dyn std::error::Error>> {
-  let app_dir = app.path_resolver().app_data_dir()
-    .ok_or("Could not determine app data directory")?;
-  Ok(app_dir.join("deadline-tracker.db"))
+pub fn get_db_path(_app: &AppHandle) -> Result<PathBuf, Box<dyn std::error::Error>> {
+  // Get app data directory based on OS
+  let data_dir = if cfg!(target_os = "macos") {
+    PathBuf::from(std::env::var("HOME")?)
+      .join("Library/Application Support/deadline-tracker")
+  } else if cfg!(target_os = "windows") {
+    PathBuf::from(std::env::var("APPDATA")?)
+      .join("deadline-tracker")
+  } else {
+    // Linux
+    PathBuf::from(std::env::var("HOME")?)
+      .join(".local/share/deadline-tracker")
+  };
+  
+  // Create directory if it doesn't exist
+  std::fs::create_dir_all(&data_dir)?;
+  
+  Ok(data_dir.join("deadline-tracker.db"))
 }
 
 pub fn get_connection(app: &AppHandle) -> Result<Connection, Box<dyn std::error::Error>> {
