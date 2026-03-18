@@ -60,7 +60,7 @@
     </div>
 
     <div class="tasks-section">
-      <div class="test-info" style="padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; margin-bottom: 16px; font-size: 13px; color: #856404;">
+      <div class="test-info">
         <strong>Debug Info:</strong> Raw tasks loaded: {$tasks.length} | Filtered today: {$todaysTasks.length} | Show completed: {$uiState.showCompleted ? 'ON' : 'OFF'} | Priority filters: {$uiState.selectedPriorities.size}
       </div>
       {#if $todaysTasks.length === 0}
@@ -126,14 +126,17 @@
   }
 
   .sidebar-toggle {
-    display: none;
     background: none;
     border: none;
     cursor: pointer;
     color: var(--text-secondary);
-    padding: 4px;
+    padding: 4px 8px;
     border-radius: var(--radius-md);
     transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
   }
 
   .sidebar-toggle:hover {
@@ -183,11 +186,25 @@
     color: var(--accent);
   }
 
+  .test-info {
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-md);
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .test-info strong {
+    color: var(--accent);
+  }
+
   .tasks-section {
     flex: 1;
     overflow-y: auto;
     padding: var(--spacing-lg);
-    max-width: 700px;
+    min-width: 0;
   }
 
   .empty-state {
