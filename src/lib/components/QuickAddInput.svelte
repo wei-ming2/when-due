@@ -37,6 +37,11 @@
     on:keydown={handleKeydown}
     disabled={isAdding}
   />
+  <button type="submit" disabled={!title.trim() || isAdding} aria-label="Add task">
+    {isAdding ? '⏳' : '↵'}
+  </button>
+</form>
+
 <style>
   .quick-add {
     display: flex;
