@@ -105,17 +105,30 @@ function createTasksStore() {
 
 export const tasks = createTasksStore();
 
+// Import UI state to check showCompleted setting
+import { uiState } from './ui';
+
 // Derived stores for common filters
-export const todaysTasks = derived(tasks, ($tasks) =>
-  $tasks.filter((t) => t.status === 'active').sort((a, b) => {
-    // Sort by focus first, then by due date, then by priority
-    if (a.isFocus !== b.isFocus) return a.isFocus ? -1 : 1;
-    if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-    if (a.dueDate) return -1;
-    if (b.dueDate) return 1;
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    return priorityOrder[a.priority] - priorityOrder[b.priority];
-  })
+export const todaysTasks = derived(
+  [tasks, uiState],
+  ([$tasks, $uiState]) =>
+    $tasks
+      .filter((t) => {
+        // Always show active tasks
+        if (t.status === 'active') return true;
+        // Show completed only if showCompleted is enabled
+        if (t.status === 'completed' && $uiState.showCompleted) return true;
+        return false;
+      })
+      .sort((a, b) => {
+        // Sort by focus first, then by due date, then by priority
+        if (a.isFocus !== b.isFocus) return a.isFocus ? -1 : 1;
+        if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      })
 );
 
 export const overdueTasks = derived(tasks, ($tasks) => {

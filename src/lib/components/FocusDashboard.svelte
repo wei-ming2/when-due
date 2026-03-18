@@ -4,6 +4,7 @@
   import TaskCard from './TaskCard.svelte';
   import QuickAddInput from './QuickAddInput.svelte';
   import CapacityBar from './CapacityBar.svelte';
+  import FilterSidebar from './FilterSidebar.svelte';
   import TaskDetailPanel from './TaskDetailPanel.svelte';
   import { formatDueDate } from '../utils/formatting';
   import type { Task } from '../services/api';
@@ -27,9 +28,11 @@
 </script>
 
 <div class="focus-dashboard">
-  <div class="dashboard-content">
-    <div class="header">
-      <div class="header-title">
+  <FilterSidebar />
+
+  <div class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
         <h1>Today's Focus</h1>
         <p class="date">
           {new Date().toLocaleDateString('en-US', {
@@ -39,16 +42,12 @@
           })}
         </p>
       </div>
-    </div>
-
-    <CapacityBar availableHours={8} />
-
-    <div class="info-banner">
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
-        <text x="12" y="16" text-anchor="middle" font-size="14" font-weight="bold">i</text>
-      </svg>
-      <p>Time tracking features are coming in v0.2. Currently showing available capacity for your day.</p>
+      <div class="capacity-compact">
+        <div class="capacity-stat">
+          <span class="stat-label">Tasks</span>
+          <span class="stat-value">{$todaysTasks.filter((t) => t.status === 'active').length}</span>
+        </div>
+      </div>
     </div>
 
     <div class="tasks-section">
@@ -58,7 +57,8 @@
             <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             <circle cx="12" cy="12" r="9" stroke-width="2" />
           </svg>
-          <p>No tasks for today. You're all set! 🎉</p>
+          <p>No tasks to show</p>
+          <p class="empty-hint">Create one to get started</p>
         </div>
       {:else}
         <div class="tasks-list">
@@ -77,7 +77,6 @@
       task={selectedTask}
       on:close={handleClosePanel}
       on:updated={() => {
-        // Task updated, just close the panel
         handleClosePanel();
       }}
     />
@@ -89,63 +88,67 @@
     display: flex;
     height: 100%;
     overflow: hidden;
+    background: var(--bg-primary);
   }
 
-  .dashboard-content {
+  .dashboard-main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    padding: 24px;
-    max-width: 800px;
-    margin: 0 auto;
-    width: 100%;
+    overflow: hidden;
   }
 
-  .header {
-    margin-bottom: 24px;
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: var(--spacing-xl);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-primary);
   }
 
-  .header-title h1 {
-    font-size: var(--font-size-2xl);
+  .dashboard-header h1 {
+    margin: 0 0 4px 0;
+    font-size: 28px;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 4px 0;
   }
 
   .date {
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
     margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
   }
 
-  .info-banner {
+  .capacity-compact {
     display: flex;
+    gap: var(--spacing-xl);
+  }
+
+  .capacity-stat {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    background: var(--accent-light);
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
+    gap: 4px;
   }
 
-  .info-banner svg {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    color: var(--accent);
-  }
-
-  .info-banner p {
-    margin: 0;
+  .stat-label {
     font-size: var(--font-size-sm);
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
   }
 
   .tasks-section {
     flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+    max-width: 700px;
   }
 
   .empty-state {
@@ -153,7 +156,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
+    padding: var(--spacing-2xl);
     text-align: center;
     color: var(--text-secondary);
   }
@@ -161,23 +164,54 @@
   .icon-empty {
     width: 64px;
     height: 64px;
-    margin-bottom: 16px;
+    margin-bottom: var(--spacing-lg);
     opacity: 0.5;
+  }
+
+  .empty-state p {
+    margin: 0;
+  }
+
+  .empty-hint {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+    margin-top: 4px!important;
   }
 
   .tasks-list {
     display: flex;
     flex-direction: column;
     gap: 0;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  @media (max-width: 1024px) {
+    .focus-dashboard {
+      flex-direction: column;
+    }
+
+    .dashboard-header {
+      padding: var(--spacing-lg);
+    }
+
+    .tasks-section {
+      max-width: 100%;
+      padding: var(--spacing-md);
+    }
   }
 
   @media (max-width: 640px) {
-    .dashboard-content {
-      padding: 16px;
+    .dashboard-header {
+      flex-direction: column;
+      gap: var(--spacing-md);
     }
 
-    .header-title h1 {
-      font-size: var(--font-size-xl);
+    .dashboard-header h1 {
+      font-size: 24px;
+    }
+
+    .capacity-compact {
+      align-self: flex-start;
     }
   }
 </style>
