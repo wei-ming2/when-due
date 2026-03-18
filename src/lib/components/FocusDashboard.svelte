@@ -43,6 +43,14 @@
 
     <CapacityBar availableHours={8} />
 
+    <div class="info-banner">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+        <text x="12" y="16" text-anchor="middle" font-size="14" font-weight="bold">i</text>
+      </svg>
+      <p>Time tracking features are coming in v0.2. Currently showing available capacity for your day.</p>
+    </div>
+
     <div class="tasks-section">
       {#if $todaysTasks.length === 0}
         <div class="empty-state">
@@ -99,16 +107,41 @@
   }
 
   .header-title h1 {
-    font-size: 2rem;
+    font-size: var(--font-size-2xl);
     font-weight: 700;
-    color: var(--color-text);
+    color: var(--text-primary);
     margin: 0 0 4px 0;
   }
 
   .date {
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
     margin: 0;
+  }
+
+  .info-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+  }
+
+  .info-banner svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: var(--accent);
+  }
+
+  .info-banner p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
   }
 
   .tasks-section {
@@ -122,7 +155,7 @@
     justify-content: center;
     padding: 60px 20px;
     text-align: center;
-    color: var(--color-text-secondary);
+    color: var(--text-secondary);
   }
 
   .icon-empty {
@@ -144,7 +177,7 @@
     }
 
     .header-title h1 {
-      font-size: 1.5rem;
+      font-size: var(--font-size-xl);
     }
   }
 </style>

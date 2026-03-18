@@ -29,14 +29,14 @@
   .capacity-bar {
     margin: 16px 0;
     padding: 12px;
-    border-radius: 8px;
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
   }
 
   .capacity-bar.over-capacity {
-    border-color: rgb(239, 68, 68);
-    background: rgba(239, 68, 68, 0.05);
+    border-color: var(--danger);
+    background: rgba(248, 113, 113, 0.1);
   }
 
   .capacity-info {
@@ -44,47 +44,47 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
   .label {
-    color: var(--color-text-secondary);
+    color: var(--text-secondary);
     font-weight: 600;
   }
 
   .time {
-    color: var(--color-text);
+    color: var(--text-primary);
     font-weight: 600;
   }
 
   .bar-container {
     width: 100%;
     height: 8px;
-    border-radius: 4px;
-    background: var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-tertiary);
     overflow: hidden;
     margin: 8px 0;
   }
 
   .bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, rgb(16, 185, 129), rgb(59, 130, 246));
-    border-radius: 4px;
-    transition: width 0.3s ease;
+    background: linear-gradient(90deg, var(--success), var(--accent));
+    border-radius: var(--radius-sm);
+    transition: width var(--transition-normal);
   }
 
   .capacity-bar.over-capacity .bar-fill {
-    background: linear-gradient(90deg, rgb(239, 68, 68), rgb(249, 115, 22));
+    background: linear-gradient(90deg, var(--danger), var(--warning));
   }
 
   .remaining-text {
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
     text-align: right;
   }
 
   .remaining-text.warning {
-    color: rgb(239, 68, 68);
+    color: var(--danger);
     font-weight: 600;
   }
 </style>

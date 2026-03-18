@@ -37,41 +37,43 @@
     on:keydown={handleKeydown}
     disabled={isAdding}
   />
-  <button type="submit" disabled={!title.trim() || isAdding} aria-label="Add task">
-    {isAdding ? '⏳' : '↵'}
-  </button>
-</form>
-
 <style>
   .quick-add {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    background: var(--color-card-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
     margin-top: 16px;
+    transition: all var(--transition-fast);
+  }
+
+  .quick-add:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
   }
 
   .icon-plus {
     width: 20px;
     height: 20px;
-    color: var(--color-text-secondary);
+    color: var(--text-secondary);
+    flex-shrink: 0;
   }
 
   input {
     flex: 1;
     border: none;
     background: transparent;
-    font-size: 1rem;
-    color: var(--color-text);
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
     outline: none;
     font-family: inherit;
   }
 
   input::placeholder {
-    color: var(--color-text-secondary);
+    color: var(--text-tertiary);
   }
 
   input:disabled {
@@ -83,19 +85,21 @@
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: 4px;
-    background: var(--color-primary);
+    border-radius: var(--radius-md);
+    background: var(--accent);
     color: white;
     cursor: pointer;
     font-size: 0.9rem;
-    transition: background 0.2s ease;
+    transition: all var(--transition-fast);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-weight: 600;
   }
 
   button:hover:not(:disabled) {
-    background: var(--color-primary-hover);
+    background: var(--accent);
+    transform: scale(1.05);
   }
 
   button:disabled {
