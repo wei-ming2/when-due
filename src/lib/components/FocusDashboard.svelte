@@ -124,8 +124,8 @@
 
   .header-left {
     display: flex;
-    align-items: flex-start;
-    gap: var(--spacing-lg);
+    align-items: center;
+    gap: var(--spacing-md);
   }
 
   .sidebar-toggle {
@@ -139,7 +139,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 2px;
   }
 
   .sidebar-toggle:hover {
