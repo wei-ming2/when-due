@@ -70,7 +70,7 @@
             <circle cx="12" cy="12" r="9" stroke-width="2" />
           </svg>
           <p>No tasks to show</p>
-          <p class="empty-hint">Create one to get started</p>
+          <p class="empty-hint">Use the input below to add a new deadline</p>
         </div>
       {:else}
         <div class="tasks-list">
@@ -80,7 +80,10 @@
         </div>
       {/if}
 
-      <QuickAddInput />
+      <div class="quick-add-section">
+        <h3>Add New Deadline</h3>
+        <QuickAddInput />
+      </div>
     </div>
   </div>
 
@@ -239,6 +242,19 @@
     flex-direction: column;
     gap: 0;
     margin-bottom: var(--spacing-lg);
+  }
+
+  .quick-add-section {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-xl);
+    border-top: 2px solid var(--border-color);
+  }
+
+  .quick-add-section h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
   }
 
   @media (max-width: 1024px) {
