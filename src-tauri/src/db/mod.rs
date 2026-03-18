@@ -109,7 +109,7 @@ fn apply_migration_v1(conn: &Connection) -> Result<(), rusqlite::Error> {
       taskId TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       completed BOOLEAN DEFAULT FALSE,
-      order INTEGER NOT NULL,
+      \"order\" INTEGER NOT NULL,
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );",

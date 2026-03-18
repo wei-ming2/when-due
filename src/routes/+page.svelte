@@ -1,30 +1,28 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
+  import FocusDashboard from '$lib/components/FocusDashboard.svelte';
+  import { tasks } from '$lib/stores/tasks';
+  import { categories } from '$lib/stores/categories';
+
+  onMount(async () => {
+    // Load initial data
+    await tasks.loadTasks('today');
+    await categories.load();
+  });
 </script>
 
 <main>
-  <h1>Welcome to Deadline Tracker</h1>
-  <p>Your minimal, intuitive deadline management application.</p>
-  <p>Development environment initialized successfully!</p>
+  <FocusDashboard />
 </main>
 
 <style>
+  :global(body) {
+    margin: 0;
+    padding: 0;
+  }
+
   main {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    padding: var(--spacing-lg);
-    text-align: center;
-  }
-
-  h1 {
-    margin-bottom: var(--spacing-md);
-  }
-
-  p {
-    color: var(--text-secondary);
-    margin-bottom: var(--spacing-md);
+    height: 100vh;
+    overflow: hidden;
   }
 </style>

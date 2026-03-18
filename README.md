@@ -2,31 +2,38 @@
 
 A minimal, intuitive desktop application for managing deadlines and tasks. Built for clarity, speed, and simplicity—no more cluttered productivity tools.
 
-**Status:** 🚀 In active development (Phase 1: MVP)
+**Status:** ✅ **v0.1.0 Released** – Core MVP complete and ready to use  
+**Latest Release:** [Download v0.1.0](https://github.com/yourusername/deadline-tracker/releases/tag/v0.1.0)
 
-## Features
+## Features (v0.1.0)
 
-### ✅ Current (MVP - Phase 1)
-- Add, edit, delete tasks with due dates
-- Priority levels (High, Medium, Low) with visual indicators
-- Organize tasks by categories/projects
-- "Today's Focus" view—drag tasks here to prioritize
-- Time estimation for each task
-- Full dark mode support
-- Keyboard-first navigation (keyboard shortcuts for power users)
-- Subtasks with checkbox completion
+### ✅ Implemented
+- **Task Management**: Create, edit, delete tasks with full metadata
+- **Priority System**: High, Medium, Low with color-coded visual indicators
+- **Time Estimation**: Per-task time estimates with automatic capacity calculation
+- **Due Dates**: Set due dates and filter by today/overdue
+- **Today's Focus Dashboard**: Single-screen view of today's tasks sorted by focus, due date, and priority
+- **Focus Mode**: Mark tasks as "focus" to highlight critical work
+- **Completion Tracking**: Check off tasks with visual feedback (strikethrough)
+- **Dark Mode**: System preference detection with automatic theme switching
+- **Persistence**: SQLite database ensures tasks survive app restarts
+- **Capacity Planning**: Real-time capacity bar showing time commitment vs. available hours
 
-### 🎯 Planned (Phase 2)
+### 🎯 Planned (v0.2+)
+- Categories/Projects organization
+- Subtasks with checklist
+- Keyboard shortcuts (⌘N, ⌘K, Escape, etc.)
+- Advanced filtering and search
 - Recurring/repeating tasks
 - Local desktop notifications
-- Drag-to-focus dashboard
-- Advanced search and filtering
+- Drag-and-drop prioritization
 - Export to JSON/CSV
 
-### 💭 Future (Phase 3)
-- Optional cloud sync (user data always in control)
-- Mobile companion app
-- Analytics (completion rate, time tracking)
+### 💭 Future (v0.3+)
+- Optional end-to-end encrypted cloud sync
+- Mobile companion app (iOS/Android)
+- Time tracking & analytics
+- Collaborative task sharing
 
 ## Screenshots
 
@@ -41,106 +48,122 @@ A minimal, intuitive desktop application for managing deadlines and tasks. Built
 
 ### Installation & Development
 
+## Quick Start
+
+### Install & Run (v0.1.0)
+
+**Option 1: Download Pre-built App (Recommended)**
+1. Go to [Releases](https://github.com/yourusername/deadline-tracker/releases/tag/v0.1.0)
+2. Download the `.dmg` file for macOS (or `.msi` for Windows, `.AppImage` for Linux)
+3. Install and launch
+
+**Option 2: Build from Source**
+
+Prerequisites:
+- Node.js 18+
+- Rust 1.70+
+
 ```bash
-# Clone the repository
+# Clone & setup
 git clone https://github.com/yourusername/deadline-tracker.git
 cd deadline-tracker
-
-# Install frontend dependencies
 npm install
 
-# Install Rust dependencies & build backend
-cd src-tauri && cargo build && cd ..
+# Run development build (hot-reload enabled)
+npm run tauri:dev
 
-# Start development server (hot reload)
-npm run dev
-
-# Build for production
+# Or build production binary
 npm run tauri build
+# Output: src-tauri/target/release/bundle/
 ```
 
-### Running the App
-```bash
-# During development
-npm run tauri dev
+## Quick Usage Guide
 
-# After building
-# Open the generated installer (.dmg for macOS, .msi for Windows, .AppImage for Linux)
-```
+1. **Add a Task**: Click the input at the bottom, type task title, press Enter
+2. **Edit**: Click task title to open detail panel with edit option
+3. **Complete**: Click checkbox to mark done (strikethrough effect)
+4. **Check Capacity**: See the capacity bar at top—brown shows available time, red shows over capacity
+5. **Focus Task**: (Coming v0.2—currently all active tasks shown)
+6. **Dark Mode**: Automatically follows your macOS system preference
 
 ## Project Structure
 
 ```
 deadline-tracker/
-├── src-tauri/              # Rust backend (Tauri)
+├── src-tauri/                 # Rust backend (Tauri framework)
 │   ├── src/
-│   │   ├── main.rs        # App initialization
-│   │   ├── db/            # SQLite database layer
-│   │   ├── handlers/      # API handlers for tasks, categories
-│   │   └── sync/          # Future: cloud sync logic
+│   │   ├── main.rs           # App entry, Tauri command handler registration
+│   │   ├── handlers/
+│   │   │   ├── task.rs       # Task CRUD operations (7 handlers)
+│   │   │   ├── category.rs   # Category management (4 handlers) — UI coming v0.2
+│   │   │   ├── subtask.rs    # Subtask ops (5 handlers) — UI coming v0.2
+│   │   │   └── util.rs       # Utilities (version, export)
+│   │   └── db/               # SQLite initialization, migrations, pool
 │   └── Cargo.toml
 │
-├── src/                    # SvelteKit frontend (TypeScript)
+├── src/                       # SvelteKit frontend (TypeScript)
 │   ├── lib/
-│   │   ├── components/    # Reusable UI components
-│   │   ├── stores/        # Svelte reactive stores
-│   │   ├── services/      # Business logic & Tauri API wrapper
-│   │   └── styles/        # Custom CSS (no framework)
-│   ├── routes/            # Page routes
-│   └── app.css
+│   │   ├── components/       # Svelte components (TaskCard, FocusDashboard, etc.)
+│   │   ├── stores/           # Reactive stores (tasks, categories, ui)
+│   │   ├── services/         # API wrapper for Tauri IPC communication
+│   │   └── utils/            # Formatting helpers
+│   ├── routes/
+│   │   └── +page.svelte      # Main app container
+│   └── app.css               # Design system (light/dark theme CSS variables)
 │
-├── tests/                  # Unit & integration tests
-├── .github/workflows/      # CI/CD (auto-build, release)
-├── docs/                   # Technical documentation
+├── docs/                     # Technical documentation
+├── tests/                    # Test suite (vitest)
 └── package.json
 ```
 
 ## Tech Stack
 
-- **Frontend:** SvelteKit + TypeScript + Custom CSS
-- **Desktop:** Tauri (Rust-based, lightweight)
-- **Database:** SQLite (local-only for now)
-- **Architecture:** Event-driven with stores for state
-- **Testing:** Vitest + Playwright
-- **Deployment:** GitHub Actions + GitHub Releases
+| Layer | Technology | Why |
+|-------|-----------|-----|
+| **Desktop** | Tauri 2.0 (Rust) | 90% smaller than Electron, native OS integration |
+| **Frontend** | SvelteKit + TypeScript | Minimal, highly reactive, excellent DX |
+| **Styling** | Custom CSS | Full control, zero overhead, learning opportunity |
+| **Database** | SQLite | Lightweight, local-first, battle-tested |
+| **State** | Svelte stores | Built-in reactivity, minimal boilerplate |
+| **Build/Deploy** | GitHub Actions | Free CI/CD, auto cross-platform builds |
 
 ## Contributing
 
-This is primarily a personal learning project, but feedback and ideas are welcome!
+This project emphasizes **high-quality architecture over rapid feature development**. Every decision is intentional.
 
-### Development Guidelines
-- Keep it simple—one feature at a time
-- Test manually on all platforms (macOS, Windows, Linux) before releasing
-- Document changes in commit messages (using conventional commits)
-- File issues for bugs or feature requests
+### How to Contribute
+- **Report bugs**: Open an [issue](https://github.com/yourusername/deadline-tracker/issues)
+- **Suggest features**: Discuss in issues or PRs
+- **Submit code**: PRs welcome—discuss design first
 
-### Workflow
-1. Create a feature branch: `git checkout -b feature/task-reminder`
-2. Make changes and test locally
-3. Commit: `git commit -m "feat: add task reminders"`
-4. Push: `git push origin feature/task-reminder`
-5. Create a Pull Request with description
+### Development Workflow
+```bash
+# 1. Create branch
+git checkout -b feature/my-feature
 
-## Documentation
+# 2. Make changes & test
+npm run tauri:dev  # Test during development
+npm run lint       # Check code style
+npm run type-check # Check TypeScript
 
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Design decisions and technical overview
-- [SETUP.md](docs/SETUP.md) — Detailed development environment setup
+# 3. Commit (conventional commits)
+git commit -m "feat: add keyboard shortcuts for task creation"
+
+# 4. Push & create PR
+git push origin feature/my-feature
+```
+
+## Technical Documentation
+
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Design decisions and data flow
+- [SETUP.md](docs/SETUP.md) — Detailed dev environment setup
+- [DATABASE.md](docs/DATABASE.md) — SQLite schema, queries, migrations
 - [API.md](docs/API.md) — Tauri backend API reference
-- [DATABASE.md](docs/DATABASE.md) — SQLite schema and queries
+- [TESTING.md](TESTING.md) — Manual testing checklist & scenarios
 
 ## License
 
-MIT License — Feel free to use, modify, and distribute!
-
-## Why I Built This
-
-After using TickTick and other productivity apps, I found:
-- UI too cluttered when managing complex tasks
-- Subtask creation unintuitive (should be one Tab key)
-- Pricing model unclear
-- Wanted full control over my data
-
-This project is both a practical tool and a deep dive into full-stack desktop development.
+MIT License — Free to use, modify, and distribute!
 
 ## Performance & Data Privacy
 
