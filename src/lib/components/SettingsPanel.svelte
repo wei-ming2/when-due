@@ -35,6 +35,11 @@
   onDestroy(() => {
     if (unsubscribe) unsubscribe();
   });
+
+  function handleSelectChange(e: Event) {
+    const target = e.target as HTMLSelectElement;
+    handleThemeChange(target.value as ThemeMode);
+  }
 </script>
 
 {#if isOpen}
@@ -54,7 +59,7 @@
           <h3>Appearance</h3>
           <div class="setting-item">
             <label for="theme-select">Theme</label>
-            <select id="theme-select" value={$uiState.themeMode} on:change={(e) => handleThemeChange(e.currentTarget.value as ThemeMode)}>
+            <select id="theme-select" value={$uiState.themeMode} on:change={handleSelectChange}>
               <option value="light">Light</option>
               <option value="dark">Dark</option>
               <option value="system">System</option>
