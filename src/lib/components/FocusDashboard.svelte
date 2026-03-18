@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { todaysTasks, tasks } from '../stores/tasks';
   import { uiState } from '../stores/ui';
   import TaskCard from './TaskCard.svelte';
@@ -12,6 +13,12 @@
   let selectedTaskId: string | undefined;
   let showDetailPanel = false;
 
+  onMount(() => {
+    console.log('🔵 FocusDashboard mounted!');
+    console.log('Total tasks in store:', $tasks.length);
+    console.log('Today tasks:', $todaysTasks.length);
+  });
+
   $: selectedTask = selectedTaskId ? $todaysTasks.find((t) => t.id === selectedTaskId) : undefined;
 
   const handleTaskEdit = (taskId: string) => {
@@ -23,8 +30,6 @@
     showDetailPanel = false;
     selectedTaskId = undefined;
   };
-
-  // Load tasks on mount
 </script>
 
 <div class="focus-dashboard">
@@ -61,7 +66,22 @@
 
     <div class="tasks-section">
       <div class="test-info">
-        <strong>Debug Info:</strong> Raw tasks loaded: {$tasks.length} | Filtered today: {$todaysTasks.length} | Show completed: {$uiState.showCompleted ? 'ON' : 'OFF'} | Priority filters: {$uiState.selectedPriorities.size}
+        <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: var(--accent);">
+          🔍 DIAGNOSTIC PANEL
+        </div>
+        <div>Raw tasks: <strong>{$tasks.length}</strong></div>
+        <div>Today's tasks: <strong>{$todaysTasks.length}</strong></div>
+        <div>Show completed: <strong>{$uiState.showCompleted ? 'YES' : 'NO'}</strong></div>
+        <div>Priority filters active: <strong>{$uiState.selectedPriorities.size}</strong></div>
+        <div style="margin-top: 10px; font-size: 12px; color: var(--text-secondary);">
+          {#if $tasks.length === 0}
+            ⚠️ No tasks loaded from database!
+          {:else if $todaysTasks.length === 0}
+            ⚠️ Tasks loaded but filtered out (check filters & date logic)
+          {:else}
+            ✅ Tasks are loading and displaying
+          {/if}
+        </div>
       </div>
       {#if $todaysTasks.length === 0}
         <div class="empty-state">
@@ -189,17 +209,19 @@
   }
 
   .test-info {
-    padding: 12px 16px;
+    padding: 16px;
     background: var(--bg-secondary);
-    border: 2px solid var(--accent);
+    border: 3px solid var(--accent);
     border-radius: var(--radius-md);
-    margin-bottom: 16px;
-    font-size: 13px;
-    color: var(--text-secondary);
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.8;
   }
 
   .test-info strong {
     color: var(--accent);
+    font-weight: 700;
   }
 
   .tasks-section {
