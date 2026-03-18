@@ -38,6 +38,10 @@
   {/if}
 
   <div class="dashboard-main">
+    <div style="background: yellow; color: black; padding: 20px; font-size: 20px; font-weight: bold;">
+      🔴 IF YOU SEE THIS TEXT, dashboard-main IS RENDERING
+    </div>
+
     <div class="dashboard-header">
       <div class="header-left">
         <button class="sidebar-toggle" on:click={() => uiState.toggleSidebar()} title="Toggle filters">
@@ -131,6 +135,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: var(--bg-primary);
+    border: 3px solid red;
+    position: relative;
   }
 
   .dashboard-header {
