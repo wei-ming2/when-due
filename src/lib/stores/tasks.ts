@@ -11,10 +11,13 @@ function createTasksStore() {
     // Load all tasks for a filter
     async loadTasks(filter: 'today' | 'week' | 'overdue' | 'all' = 'all') {
       try {
+        console.log(`[Tasks Store] Loading tasks with filter: ${filter}`);
         const tasks = await taskApi.getTasks(filter);
+        console.log(`[Tasks Store] Loaded ${tasks.length} tasks:`, tasks);
         set(tasks);
       } catch (error) {
-        console.error('Failed to load tasks:', error);
+        console.error('[Tasks Store] Failed to load tasks:', error);
+        throw error;
       }
     },
 

@@ -51,6 +51,9 @@
     </div>
 
     <div class="tasks-section">
+      <div class="debug-info" style="padding: 8px; background: #f0f0f0; border-radius: 4px; margin-bottom: 12px; font-size: 12px; color: #666;">
+        <p>Raw tasks: {$tasks.length} | Today's tasks: {$todaysTasks.length}</p>
+      </div>
       {#if $todaysTasks.length === 0}
         <div class="empty-state">
           <svg class="icon-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor">

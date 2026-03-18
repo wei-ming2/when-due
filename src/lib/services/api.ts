@@ -38,8 +38,15 @@ export interface Subtask {
 // Task API calls
 export const taskApi = {
   async getTasks(filter?: 'today' | 'week' | 'overdue' | 'all'): Promise<Task[]> {
-    const result = await invoke<{ tasks: Task[] }>('get_tasks', { filter });
-    return result.tasks;
+    try {
+      console.log(`[API] Calling get_tasks with filter: ${filter}`);
+      const result = await invoke<{ tasks: Task[] }>('get_tasks', { filter });
+      console.log(`[API] get_tasks response:`, result);
+      return result.tasks;
+    } catch (error) {
+      console.error('[API] get_tasks failed:', error);
+      throw error;
+    }
   },
 
   async createTask(

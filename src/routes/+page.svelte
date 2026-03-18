@@ -9,8 +9,10 @@
 
   onMount(async () => {
     // Load initial data
+    console.log('[+page] onMount: Loading initial data...');
     await tasks.loadTasks('today');
     await categories.load();
+    console.log('[+page] onMount: Initial data loaded');
 
     // Apply saved theme on mount
     const savedUI = localStorage.getItem('deadline-tracker-ui');
