@@ -1,31 +1,20 @@
 <script lang="ts">
   import { uiState } from '../stores/ui';
 
-  let selectedPriorities: Set<string> = new Set($uiState.selectedCategoryId ? [$uiState.selectedCategoryId] : []);
-  let showCompleted = $uiState.showCompleted;
-
   function togglePriority(priority: string) {
-    if (selectedPriorities.has(priority)) {
-      selectedPriorities.delete(priority);
-    } else {
-      selectedPriorities.add(priority);
-    }
-    selectedPriorities = selectedPriorities; // Trigger reactivity
+    uiState.togglePriority(priority);
   }
 
   function toggleShowCompleted() {
-    showCompleted = !showCompleted;
-    uiState.setShowCompleted(showCompleted);
+    uiState.toggleShowCompleted();
   }
 
   function clearFilters() {
-    selectedPriorities.clear();
-    selectedPriorities = selectedPriorities;
-    showCompleted = false;
+    uiState.clearPriorityFilters();
     uiState.setShowCompleted(false);
   }
 
-  $: hasActiveFilters = selectedPriorities.size > 0 || showCompleted;
+  $: hasActiveFilters = $uiState.selectedPriorities.size > 0 || $uiState.showCompleted;
 </script>
 
 <div class="filter-sidebar">
@@ -41,7 +30,7 @@
     <div class="priority-buttons">
       <button
         class="priority-btn high"
-        class:active={selectedPriorities.has('high')}
+        class:active={$uiState.selectedPriorities.has('high')}
         on:click={() => togglePriority('high')}
         title="High priority"
       >
@@ -49,7 +38,7 @@
       </button>
       <button
         class="priority-btn medium"
-        class:active={selectedPriorities.has('medium')}
+        class:active={$uiState.selectedPriorities.has('medium')}
         on:click={() => togglePriority('medium')}
         title="Medium priority"
       >
@@ -57,7 +46,7 @@
       </button>
       <button
         class="priority-btn low"
-        class:active={selectedPriorities.has('low')}
+        class:active={$uiState.selectedPriorities.has('low')}
         on:click={() => togglePriority('low')}
         title="Low priority"
       >
@@ -68,7 +57,7 @@
 
   <div class="filter-group">
     <label class="filter-checkbox">
-      <input type="checkbox" bind:checked={showCompleted} on:change={toggleShowCompleted} />
+      <input type="checkbox" checked={$uiState.showCompleted} on:change={toggleShowCompleted} />
       <span>Show Completed</span>
     </label>
   </div>

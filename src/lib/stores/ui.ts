@@ -11,7 +11,9 @@ interface UIState {
   themeMode: ThemeMode;
   currentTheme: 'light' | 'dark';
   selectedCategoryId?: string;
+  selectedPriorities: Set<string>; // 'high' | 'medium' | 'low'
   showCompleted: boolean;
+  sidebarVisible: boolean; // Show/hide filter sidebar
   taskBeingEdited?: string; // Task ID being edited
 }
 
@@ -22,7 +24,9 @@ function createUIStore() {
     filterMode: 'today',
     themeMode: 'system',
     currentTheme: getSystemTheme(),
+    selectedPriorities: new Set<string>(),
     showCompleted: false,
+    sidebarVisible: true,
   };
 
   // Try to load from localStorage
@@ -31,6 +35,12 @@ function createUIStore() {
       const stored = localStorage.getItem('deadline-tracker-ui');
       if (stored) {
         const parsed = JSON.parse(stored);
+        // Convert stored array back to Set
+        if (parsed.selectedPriorities && Array.isArray(parsed.selectedPriorities)) {
+          parsed.selectedPriorities = new Set(parsed.selectedPriorities);
+        } else {
+          parsed.selectedPriorities = new Set<string>();
+        }
         initialState = { ...initialState, ...parsed };
       }
     } catch (error) {
@@ -44,7 +54,12 @@ function createUIStore() {
   subscribe((state) => {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
-        localStorage.setItem('deadline-tracker-ui', JSON.stringify(state));
+        // Convert Set to array for JSON serialization
+        const stateToSave = {
+          ...state,
+          selectedPriorities: Array.from(state.selectedPriorities),
+        };
+        localStorage.setItem('deadline-tracker-ui', JSON.stringify(stateToSave));
       } catch (error) {
         console.warn('Failed to persist UI state to localStorage:', error);
       }
@@ -96,6 +111,30 @@ function createUIStore() {
 
     setShowCompleted(show: boolean) {
       update((state) => ({ ...state, showCompleted: show }));
+    },
+
+    togglePriority(priority: string) {
+      update((state) => {
+        const updated = new Set(state.selectedPriorities);
+        if (updated.has(priority)) {
+          updated.delete(priority);
+        } else {
+          updated.add(priority);
+        }
+        return { ...state, selectedPriorities: updated };
+      });
+    },
+
+    clearPriorityFilters() {
+      update((state) => ({ ...state, selectedPriorities: new Set<string>() }));
+    },
+
+    toggleSidebar() {
+      update((state) => ({ ...state, sidebarVisible: !state.sidebarVisible }));
+    },
+
+    setSidebarVisible(visible: boolean) {
+      update((state) => ({ ...state, sidebarVisible: visible }));
     },
 
     setTaskBeingEdited(taskId?: string) {

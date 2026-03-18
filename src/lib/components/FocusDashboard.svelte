@@ -28,19 +28,28 @@
 </script>
 
 <div class="focus-dashboard">
-  <FilterSidebar />
+  {#if $uiState.sidebarVisible}
+    <FilterSidebar />
+  {/if}
 
   <div class="dashboard-main">
     <div class="dashboard-header">
-      <div>
-        <h1>Today's Focus</h1>
-        <p class="date">
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </p>
+      <div class="header-left">
+        <button class="sidebar-toggle" on:click={() => uiState.toggleSidebar()} title="Toggle filters">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12h18M3 6h18M3 18h18" />
+          </svg>
+        </button>
+        <div>
+          <h1>Today's Focus</h1>
+          <p class="date">
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </p>
+        </div>
       </div>
       <div class="capacity-compact">
         <div class="capacity-stat">
@@ -108,6 +117,33 @@
     padding: var(--spacing-xl);
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-primary);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+  }
+
+  .sidebar-toggle {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+  }
+
+  .sidebar-toggle:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  .sidebar-toggle svg {
+    width: 20px;
+    height: 20px;
   }
 
   .dashboard-header h1 {
@@ -191,6 +227,12 @@
   @media (max-width: 1024px) {
     .focus-dashboard {
       flex-direction: column;
+    }
+
+    .sidebar-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .dashboard-header {
