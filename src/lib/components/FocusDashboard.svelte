@@ -60,8 +60,8 @@
     </div>
 
     <div class="tasks-section">
-      <div class="debug-info" style="padding: 8px; background: #f0f0f0; border-radius: 4px; margin-bottom: 12px; font-size: 12px; color: #666;">
-        <p>Raw tasks: {$tasks.length} | Today's tasks: {$todaysTasks.length}</p>
+      <div class="test-info" style="padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; margin-bottom: 16px; font-size: 13px; color: #856404;">
+        <strong>Debug Info:</strong> Raw tasks loaded: {$tasks.length} | Filtered today: {$todaysTasks.length} | Show completed: {$uiState.showCompleted ? 'ON' : 'OFF'} | Priority filters: {$uiState.selectedPriorities.size}
       </div>
       {#if $todaysTasks.length === 0}
         <div class="empty-state">
