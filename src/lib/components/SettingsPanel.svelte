@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { uiState } from '../stores/ui';
   import type { ThemeMode } from '../stores/ui';
 
@@ -31,9 +32,9 @@
     }
   });
 
-  export const cleanup = () => {
+  onDestroy(() => {
     if (unsubscribe) unsubscribe();
-  };
+  });
 </script>
 
 {#if isOpen}
