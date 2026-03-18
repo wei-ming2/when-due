@@ -2,7 +2,6 @@
   "productName": "Deadline Tracker",
   "version": "0.1.0",
   "identifier": "com.deadlinetracker.app",
-  "displayName": "Deadline Tracker",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",

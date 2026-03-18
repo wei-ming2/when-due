@@ -8,7 +8,7 @@
  * 4. Frontend re-renders with new data
  */
 
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 
 async function testGetTasks() {
   console.log('📋 Testing: getTasksByFilter("today")');
