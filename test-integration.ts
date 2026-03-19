@@ -11,9 +11,9 @@
 import { invoke } from '@tauri-apps/api/core';
 
 async function testGetTasks() {
-  console.log('📋 Testing: getTasksByFilter("today")');
+  console.log('📋 Testing: get_tasks("today")');
   try {
-    const tasks = await invoke('get_tasks_by_filter', { filter: 'today' });
+    const tasks = await invoke('get_tasks', { filter: 'today', includeCompleted: false });
     console.log('✅ Success. Tasks:', tasks);
     return tasks;
   } catch (error) {
@@ -28,10 +28,10 @@ async function testCreateTask() {
     const task = await invoke('create_task', {
       title: 'Integration Test Task',
       description: 'This is a test task created at ' + new Date().toISOString(),
-      due_date: new Date().toISOString().split('T')[0],
+      dueDate: new Date().toISOString(),
       priority: 'medium',
-      time_estimate: 60,
-      category_id: null,
+      timeEstimate: 60,
+      categoryId: null,
     });
     console.log('✅ Success. Created task:', task);
     return task;
@@ -73,10 +73,10 @@ async function testUpdateTask(taskId: string) {
 }
 
 async function testDeleteTask(taskId: string) {
-  console.log('\n🗑️ Testing: deleteTask');
+  console.log('\n🗄️ Testing: archiveTask');
   try {
     const result = await invoke('delete_task', { id: taskId });
-    console.log('✅ Success. Deleted task');
+    console.log('✅ Success. Archived task');
     return result;
   } catch (error) {
     console.error('❌ Failed:', error);

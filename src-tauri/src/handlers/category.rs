@@ -40,6 +40,11 @@ pub async fn create_category(
 ) -> Result<serde_json::Value, String> {
   let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
   
+  let name = name.trim().to_string();
+  if name.is_empty() {
+    return Err("Category name cannot be empty".to_string());
+  }
+
   let id = Uuid::new_v4().to_string();
   let now = Utc::now().to_rfc3339();
   
@@ -71,8 +76,12 @@ pub async fn update_category(
   let now = Utc::now().to_rfc3339();
   
   if let Some(n) = name {
+    let trimmed_name = n.trim().to_string();
+    if trimmed_name.is_empty() {
+      return Err("Category name cannot be empty".to_string());
+    }
     conn.execute("UPDATE categories SET name = ?, updatedAt = ? WHERE id = ?", 
-      rusqlite::params![n, &now, &id]).map_err(|e| e.to_string())?;
+      rusqlite::params![trimmed_name, &now, &id]).map_err(|e| e.to_string())?;
   }
   if let Some(c) = color {
     conn.execute("UPDATE categories SET color = ?, updatedAt = ? WHERE id = ?", 

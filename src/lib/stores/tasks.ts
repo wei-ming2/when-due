@@ -1,6 +1,7 @@
 // Reactive store for tasks
 import { writable, derived } from 'svelte/store';
-import { taskApi, type Task } from '../services/api';
+import { taskApi, type Task, type TaskUpdateInput } from '../services/api';
+import { shouldIncludeTask, sortTasksForDeadlineList } from '../utils/task-list';
 
 function createTasksStore() {
   const { subscribe, set, update } = writable<Task[]>([]);
@@ -9,10 +10,13 @@ function createTasksStore() {
     subscribe,
     
     // Load all tasks for a filter
-    async loadTasks(filter: 'today' | 'week' | 'overdue' | 'all' = 'all') {
+    async loadTasks(
+      filter: 'today' | 'week' | 'overdue' | 'all' = 'all',
+      includeCompleted: boolean = false
+    ) {
       try {
-        console.log(`[Tasks Store] Loading tasks with filter: ${filter}`);
-        const tasks = await taskApi.getTasks(filter);
+        console.log(`[Tasks Store] Loading tasks with filter: ${filter}, includeCompleted: ${includeCompleted}`);
+        const tasks = await taskApi.getTasks(filter, includeCompleted);
         console.log(`[Tasks Store] Loaded ${tasks.length} tasks:`, tasks);
         set(tasks);
       } catch (error) {
@@ -28,10 +32,17 @@ function createTasksStore() {
       dueDate?: string,
       priority: 'low' | 'medium' | 'high' = 'medium',
       timeEstimate?: number,
-      categoryId?: string
+      categoryIds?: string[]
     ) {
       try {
-        const newTask = await taskApi.createTask(title, description, dueDate, priority, timeEstimate, categoryId);
+        const newTask = await taskApi.createTask(
+          title,
+          description,
+          dueDate,
+          priority,
+          timeEstimate,
+          categoryIds
+        );
         update((tasks) => [...tasks, newTask]);
         return newTask;
       } catch (error) {
@@ -41,11 +52,14 @@ function createTasksStore() {
     },
 
     // Update a task
-    async update(id: string, updates: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'status'>>) {
+    async update(id: string, updates: TaskUpdateInput) {
       try {
-        await taskApi.updateTask(id, updates);
+        const result = await taskApi.updateTask(id, updates);
+        const normalizedUpdates = normalizeTaskUpdateForStore(updates);
         update((tasks) =>
-          tasks.map((task) => (task.id === id ? { ...task, ...updates } : task))
+          tasks.map((task) =>
+            task.id === id ? { ...task, ...normalizedUpdates, updatedAt: result.updatedAt } : task
+          )
         );
       } catch (error) {
         console.error('Failed to update task:', error);
@@ -67,10 +81,18 @@ function createTasksStore() {
     // Toggle task completion
     async toggleComplete(id: string, completed: boolean) {
       try {
-        await taskApi.toggleTaskComplete(id, completed);
+        const result = await taskApi.toggleTaskComplete(id, completed);
+        const completedAt = completed ? result.updatedAt : undefined;
         update((tasks) =>
           tasks.map((task) =>
-            task.id === id ? { ...task, status: completed ? 'completed' : 'active' } : task
+            task.id === id
+              ? {
+                  ...task,
+                  status: completed ? 'completed' : 'active',
+                  completedAt,
+                  updatedAt: result.updatedAt,
+                }
+              : task
           )
         );
       } catch (error) {
@@ -78,20 +100,6 @@ function createTasksStore() {
         throw error;
       }
     },
-
-    // Toggle task focus status
-    async toggleFocus(id: string, isFocus: boolean) {
-      try {
-        await taskApi.toggleFocus(id, isFocus);
-        update((tasks) =>
-          tasks.map((task) => (task.id === id ? { ...task, isFocus } : task))
-        );
-      } catch (error) {
-        console.error('Failed to toggle focus:', error);
-        throw error;
-      }
-    },
-
     // Search tasks
     async search(query: string, limit?: number) {
       try {
@@ -103,6 +111,12 @@ function createTasksStore() {
         throw error;
       }
     },
+
+    patchLocal(id: string, updates: Partial<Task>) {
+      update((tasks) =>
+        tasks.map((task) => (task.id === id ? { ...task, ...updates } : task))
+      );
+    },
   };
 }
 
@@ -112,53 +126,66 @@ export const tasks = createTasksStore();
 import { uiState } from './ui';
 
 // Derived stores for common filters
-export const todaysTasks = derived(
+export const visibleTasks = derived(
   [tasks, uiState],
   ([$tasks, $uiState]) => {
-    let filtered = $tasks.filter((t) => {
-      // Always show active tasks
-      if (t.status === 'active') {
-        // If priority filters are set, only show matching priorities
-        if ($uiState.selectedPriorities.size > 0 && !$uiState.selectedPriorities.has(t.priority)) {
-          return false;
-        }
-        return true;
-      }
-      // Show completed only if showCompleted is enabled and no filters
-      if (t.status === 'completed' && $uiState.showCompleted) {
-        // If priority filters are set, only show matching priorities
-        if ($uiState.selectedPriorities.size > 0 && !$uiState.selectedPriorities.has(t.priority)) {
-          return false;
-        }
-        return true;
-      }
-      return false;
-    });
+    const filtered = $tasks.filter((task) =>
+      shouldIncludeTask(task, {
+        selectedPriorities: $uiState.selectedPriorities,
+        selectedCategoryId: $uiState.selectedCategoryId,
+        showCompleted: $uiState.showCompleted,
+        completedRetentionDays: $uiState.completedRetentionDays,
+      })
+    );
 
-    // Sort by focus, then by due date, then by priority
-    return filtered.sort((a, b) => {
-      if (a.isFocus !== b.isFocus) return a.isFocus ? -1 : 1;
-      if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-      if (a.dueDate) return -1;
-      if (b.dueDate) return 1;
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    });
+    return sortTasksForDeadlineList(filtered);
   }
 );
 
-export const overdueTasks = derived(tasks, ($tasks) => {
-  const today = new Date().toISOString().split('T')[0];
-  return $tasks.filter((t) => t.status === 'active' && t.dueDate && t.dueDate < today);
-});
+export const todaysTasks = visibleTasks;
 
 export const completedTasks = derived(tasks, ($tasks) =>
   $tasks.filter((t) => t.status === 'completed')
 );
 
-// Calculate total time estimate for active tasks (for capacity planning)
-export const totalTimeEstimate = derived(tasks, ($tasks) => {
+// Calculate total time estimate for active visible tasks (for capacity planning)
+export const totalTimeEstimate = derived(visibleTasks, ($tasks) => {
   return $tasks
     .filter((t) => t.status === 'active')
     .reduce((sum, t) => sum + (t.timeEstimate || 0), 0);
 });
+
+function normalizeTaskUpdateForStore(updates: TaskUpdateInput): Partial<Task> {
+  const normalized: Partial<Task> = {};
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'title') && updates.title !== undefined) {
+    normalized.title = updates.title;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'description')) {
+    normalized.description = updates.description ?? undefined;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'dueDate')) {
+    normalized.dueDate = updates.dueDate ?? undefined;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'priority') && updates.priority !== undefined) {
+    normalized.priority = updates.priority;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'timeEstimate')) {
+    normalized.timeEstimate = updates.timeEstimate ?? undefined;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'categoryId')) {
+    normalized.categoryId = updates.categoryId ?? undefined;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'categoryIds')) {
+    normalized.categoryIds = updates.categoryIds ?? [];
+    normalized.categoryId = updates.categoryIds?.[0] ?? undefined;
+  }
+
+  return normalized;
+}

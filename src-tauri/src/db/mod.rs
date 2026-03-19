@@ -65,6 +65,10 @@ fn apply_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
   if version < 1 {
     apply_migration_v1(conn)?;
   }
+
+  if version < 2 {
+    apply_migration_v2(conn)?;
+  }
   
   Ok(())
 }
@@ -139,5 +143,35 @@ fn apply_migration_v1(conn: &Connection) -> Result<(), rusqlite::Error> {
   // Update version
   conn.execute("INSERT OR REPLACE INTO schema_version (version) VALUES (1);", [])?;
   
+  Ok(())
+}
+
+fn apply_migration_v2(conn: &Connection) -> Result<(), rusqlite::Error> {
+  conn.execute(
+    "CREATE TABLE IF NOT EXISTS task_tags (
+      taskId TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      categoryId TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (taskId, categoryId)
+    );",
+    [],
+  )?;
+
+  conn.execute(
+    "INSERT OR IGNORE INTO task_tags (taskId, categoryId, createdAt)
+     SELECT id, categoryId, COALESCE(updatedAt, createdAt, CURRENT_TIMESTAMP)
+     FROM tasks
+     WHERE categoryId IS NOT NULL;",
+    [],
+  )?;
+
+  conn.execute("CREATE INDEX IF NOT EXISTS idx_task_tags_taskId ON task_tags(taskId);", [])?;
+  conn.execute(
+    "CREATE INDEX IF NOT EXISTS idx_task_tags_categoryId ON task_tags(categoryId);",
+    [],
+  )?;
+
+  conn.execute("INSERT OR REPLACE INTO schema_version (version) VALUES (2);", [])?;
+
   Ok(())
 }

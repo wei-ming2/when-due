@@ -95,8 +95,8 @@ This document outlines the complete technical architecture of Deadline Tracker, 
 │ dueDate      │    │    │ completed    │
 │ priority     │    │    │ order        │
 │ timeEst      │    │    │ createdAt    │
-│ categoryId──────┘      │ updatedAt    │
-│ status       │        └──────────────┘
+│ categoryId  ──────┘    │ updatedAt    │
+│ status       │         └──────────────┘
 │ isFocus      │
 │ completedAt  │
 │ createdAt    │
@@ -226,11 +226,6 @@ src/
      │   │   └── TaskEditor.svelte (on click)
      │   │       └── SubtaskList.svelte
      │   └── CompletedTasks section
-     │
-     ├── focus/+page.svelte (Today's Focus)
-     │   ├── Drag-to-focus zone
-     │   ├── TaskItem.svelte (draggable)
-     │   └── Focus stats
      │
      └── settings/+page.svelte
          ├── CategoryManager

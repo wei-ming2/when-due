@@ -9,8 +9,9 @@ fn main() {
   tauri::Builder::default()
     .setup(|app| {
       // Initialize database
-      let _handle = app.app_handle();
-      db::init(&app.app_handle())?;
+      let app_handle = app.app_handle();
+      db::init(&app_handle)?;
+
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -20,7 +21,7 @@ fn main() {
       handlers::task::update_task,
       handlers::task::delete_task,
       handlers::task::toggle_task_complete,
-      handlers::task::toggle_focus,
+      handlers::task::archive_completed_tasks,
       handlers::task::search_tasks,
       // Category handlers
       handlers::category::get_categories,

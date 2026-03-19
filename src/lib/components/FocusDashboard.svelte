@@ -1,47 +1,103 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { todaysTasks, tasks } from '../stores/tasks';
-  import { uiState } from '../stores/ui';
-  import TaskCard from './TaskCard.svelte';
-  import QuickAddInput from './QuickAddInput.svelte';
-  import CapacityBar from './CapacityBar.svelte';
-  import FilterSidebar from './FilterSidebar.svelte';
-  import TaskDetailPanel from './TaskDetailPanel.svelte';
-  import { formatDueDate } from '../utils/formatting';
+  import { onMount, tick } from 'svelte';
+  import { cubicOut } from 'svelte/easing';
+  import { slide } from 'svelte/transition';
+  import { visibleTasks, tasks } from '../stores/tasks';
   import type { Task } from '../services/api';
+  import { uiState, type FilterMode } from '../stores/ui';
+  import { taskApi } from '../services/api';
+  import TaskCard from './TaskCard.svelte';
+  import TaskDetailPanel from './TaskDetailPanel.svelte';
+  import QuickAddInput from './QuickAddInput.svelte';
+  import FilterSidebar from './FilterSidebar.svelte';
 
-  let selectedTaskId: string | undefined;
-  let showDetailPanel = false;
+  export let onOpenSettings: (() => void) | undefined;
+
+  let quickAddComponent: any = null;
+  let hasMounted = false;
+  let lastQueryKey = '';
+  let selectedTaskId: string | null = null;
+
+  const filterTitles: Record<FilterMode, string> = {
+    today: 'Today',
+    week: 'Upcoming',
+    overdue: 'Overdue',
+    all: 'All Tasks',
+  };
+
+  const filterHints: Record<FilterMode, string> = {
+    today: 'Nothing is due today',
+    week: 'Nothing is due in the next 7 days',
+    overdue: 'You are fully caught up',
+    all: 'No tasks found yet',
+  };
+
+  $: queryKey = `${$uiState.filterMode}:${$uiState.completedRetentionDays}`;
+  $: if (selectedTaskId && !$tasks.find((task) => task.id === selectedTaskId)) {
+    selectedTaskId = null;
+  }
+
+  async function syncQuery(queryKey: string, force = false) {
+    if (!force && queryKey === lastQueryKey) return;
+
+    lastQueryKey = queryKey;
+    try {
+      await taskApi.archiveCompletedTasks($uiState.completedRetentionDays);
+      await tasks.loadTasks($uiState.filterMode, true);
+    } catch (error) {
+      console.error('[FocusDashboard] Failed to sync task query:', error);
+    }
+  }
+
+  async function handleTaskCreated(event: CustomEvent<{ task: Task }>) {
+    const { task } = event.detail;
+    await tick();
+    document.getElementById(`task-item-${task.id}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+    });
+  }
 
   onMount(() => {
-    console.log('🔵 FocusDashboard mounted!');
-    console.log('Total tasks in store:', $tasks.length);
-    console.log('Today tasks:', $todaysTasks.length);
+    hasMounted = true;
+    void syncQuery(queryKey, true);
+
+    // Add global hotkey listener for quick add: "/" or "Ctrl+K" / "Cmd+K"
+    const handleGlobalKeydown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      // Don't intercept if user is typing in another input
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') {
+        // Allow "/" in future for just the quick add input
+        if (e.key === '/' && !target?.className.includes('quick-add')) {
+          return;
+        }
+      }
+
+      if (e.key === '/' && target?.tagName !== 'INPUT' && target?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        quickAddComponent?.focus();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        quickAddComponent?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeydown);
+    return () => window.removeEventListener('keydown', handleGlobalKeydown);
   });
 
-  $: selectedTask = selectedTaskId ? $todaysTasks.find((t) => t.id === selectedTaskId) : undefined;
-
-  const handleTaskEdit = (taskId: string) => {
-    selectedTaskId = taskId;
-    showDetailPanel = true;
-  };
-
-  const handleClosePanel = () => {
-    showDetailPanel = false;
-    selectedTaskId = undefined;
-  };
+  $: if (hasMounted) {
+    void syncQuery(queryKey);
+  }
 </script>
 
 <div class="focus-dashboard">
-  {#if $uiState.sidebarVisible}
+  <div class="sidebar-wrapper" class:hidden={!$uiState.sidebarVisible}>
     <FilterSidebar />
-  {/if}
+  </div>
 
   <div class="dashboard-main">
-    <div style="background: yellow; color: black; padding: 20px; font-size: 20px; font-weight: bold;">
-      🔴 IF YOU SEE THIS TEXT, dashboard-main IS RENDERING
-    </div>
-
     <div class="dashboard-header">
       <div class="header-left">
         <button class="sidebar-toggle" on:click={() => uiState.toggleSidebar()} title="Toggle filters">
@@ -50,7 +106,7 @@
           </svg>
         </button>
         <div>
-          <h1>Today's Focus</h1>
+          <h1>{filterTitles[$uiState.filterMode]}</h1>
           <p class="date">
             {new Date().toLocaleDateString('en-US', {
               weekday: 'long',
@@ -60,117 +116,148 @@
           </p>
         </div>
       </div>
-      <div class="capacity-compact">
+      <div class="header-actions">
+        <button class="settings-btn" on:click={() => onOpenSettings?.()} aria-label="Open settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
         <div class="capacity-stat">
-          <span class="stat-label">Tasks</span>
-          <span class="stat-value">{$todaysTasks.filter((t) => t.status === 'active').length}</span>
+          <span class="stat-label">Active</span>
+          <span class="stat-value">{$visibleTasks.filter((t) => t.status === 'active').length}</span>
         </div>
       </div>
     </div>
 
     <div class="tasks-section">
-      <div class="test-info">
-        <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: var(--accent);">
-          🔍 DIAGNOSTIC PANEL
-        </div>
-        <div>Raw tasks: <strong>{$tasks.length}</strong></div>
-        <div>Today's tasks: <strong>{$todaysTasks.length}</strong></div>
-        <div>Show completed: <strong>{$uiState.showCompleted ? 'YES' : 'NO'}</strong></div>
-        <div>Priority filters active: <strong>{$uiState.selectedPriorities.size}</strong></div>
-        <div style="margin-top: 10px; font-size: 12px; color: var(--text-secondary);">
-          {#if $tasks.length === 0}
-            ⚠️ No tasks loaded from database!
-          {:else if $todaysTasks.length === 0}
-            ⚠️ Tasks loaded but filtered out (check filters & date logic)
-          {:else}
-            ✅ Tasks are loading and displaying
-          {/if}
-        </div>
-      </div>
-      {#if $todaysTasks.length === 0}
+      {#if $visibleTasks.length === 0}
         <div class="empty-state">
           <svg class="icon-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             <circle cx="12" cy="12" r="9" stroke-width="2" />
           </svg>
           <p>No tasks to show</p>
-          <p class="empty-hint">Use the input below to add a new deadline</p>
+          <p class="empty-hint">{filterHints[$uiState.filterMode]}</p>
         </div>
       {:else}
-        <div class="tasks-list">
-          {#each $todaysTasks as task (task.id)}
-            <TaskCard {task} onEdit={handleTaskEdit} />
-          {/each}
-        </div>
+          <div class="tasks-list">
+            {#each $visibleTasks as task (task.id)}
+              <div class="task-item" id={`task-item-${task.id}`}>
+                <TaskCard
+                  {task}
+                  expanded={selectedTaskId === task.id}
+                  on:open={() => (selectedTaskId = selectedTaskId === task.id ? null : task.id)}
+                />
+                {#if selectedTaskId === task.id}
+                  <div
+                    class="task-detail-wrap"
+                    in:slide={{ duration: 180, easing: cubicOut }}
+                    out:slide={{ duration: 180, easing: cubicOut }}
+                  >
+                    <TaskDetailPanel task={task} on:close={() => (selectedTaskId = null)} />
+                  </div>
+                {/if}
+              </div>
+            {/each}
+          </div>
       {/if}
 
       <div class="quick-add-section">
-        <h3>Add New Deadline</h3>
-        <QuickAddInput />
+        <h3>Add Task</h3>
+        <QuickAddInput bind:this={quickAddComponent} on:created={handleTaskCreated} />
       </div>
     </div>
   </div>
 
-  {#if showDetailPanel && selectedTask}
-    <TaskDetailPanel
-      task={selectedTask}
-      on:close={handleClosePanel}
-      on:updated={() => {
-        handleClosePanel();
-      }}
-    />
-  {/if}
 </div>
 
 <style>
   .focus-dashboard {
     display: flex;
     height: 100%;
+    width: 100%;
     overflow: hidden;
     background: var(--bg-primary);
   }
 
+  .sidebar-wrapper {
+    width: 220px;
+    min-width: 220px;
+    transition:
+      width var(--panel-transition),
+      min-width var(--panel-transition),
+      transform var(--panel-transition),
+      opacity var(--panel-transition);
+    overflow: hidden;
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  .sidebar-wrapper.hidden {
+    width: 0;
+    min-width: 0;
+    transform: translateX(-220px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .dashboard-main {
-    flex: 1;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background: var(--bg-primary);
-    border: 3px solid red;
     position: relative;
+    min-width: 0;
+    width: 100%;
   }
 
   .dashboard-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    padding: var(--spacing-xl);
+    align-items: center;
+    padding: clamp(var(--spacing-md), 3vw, var(--spacing-xl));
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-primary);
+    flex-shrink: 0;
+    gap: var(--spacing-md);
   }
 
   .header-left {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
+    min-width: 0;
+    flex: 1;
   }
 
   .sidebar-toggle {
-    background: none;
-    border: none;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
     cursor: pointer;
     color: var(--text-secondary);
-    padding: 4px 8px;
+    padding: 8px 10px;
     border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
+    transition:
+      background-color var(--panel-transition),
+      border-color var(--panel-transition),
+      color var(--panel-transition),
+      box-shadow var(--panel-transition),
+      transform var(--panel-transition);
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: var(--shadow-sm);
   }
 
   .sidebar-toggle:hover {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.12);
+    transform: translateY(0);
   }
 
   .sidebar-toggle svg {
@@ -180,7 +267,7 @@
 
   .dashboard-header h1 {
     margin: 0 0 4px 0;
-    font-size: 28px;
+    font-size: clamp(20px, 5vw, 28px);
     font-weight: 700;
     color: var(--text-primary);
   }
@@ -191,9 +278,12 @@
     color: var(--text-secondary);
   }
 
-  .capacity-compact {
+  .header-actions {
     display: flex;
-    gap: var(--spacing-xl);
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-left: auto;
+    flex-shrink: 0;
   }
 
   .capacity-stat {
@@ -215,27 +305,49 @@
     color: var(--accent);
   }
 
-  .test-info {
-    padding: 16px;
+  .settings-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
     background: var(--bg-secondary);
-    border: 3px solid var(--accent);
-    border-radius: var(--radius-md);
-    margin-bottom: 20px;
-    font-size: 14px;
     color: var(--text-primary);
-    line-height: 1.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
   }
 
-  .test-info strong {
+  .settings-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-light);
     color: var(--accent);
-    font-weight: 700;
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.12);
+    transform: translateY(0);
+  }
+
+  .settings-btn svg {
+    width: 20px;
+    height: 20px;
   }
 
   .tasks-section {
     flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
-    padding: var(--spacing-lg);
+    padding: clamp(var(--spacing-md), 2vw, var(--spacing-lg));
     min-width: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .task-item {
+    transform-origin: top center;
+  }
+
+  .task-detail-wrap {
+    overflow: hidden;
   }
 
   .empty-state {
@@ -268,14 +380,18 @@
   .tasks-list {
     display: flex;
     flex-direction: column;
-    gap: 0;
-    margin-bottom: var(--spacing-lg);
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 2px 0 2px;
   }
 
   .quick-add-section {
-    margin-top: var(--spacing-xl);
+    margin-top: auto;
     padding-top: var(--spacing-xl);
     border-top: 2px solid var(--border-color);
+    flex-shrink: 0;
   }
 
   .quick-add-section h3 {
@@ -285,9 +401,9 @@
     color: var(--text-primary);
   }
 
-  @media (max-width: 1024px) {
+  @media (max-width: 768px) {
     .focus-dashboard {
-      flex-direction: column;
+      flex-direction: row;
     }
 
     .sidebar-toggle {
@@ -300,24 +416,63 @@
       padding: var(--spacing-lg);
     }
 
+    .dashboard-header h1 {
+      font-size: clamp(18px, 4vw, 24px);
+    }
+
     .tasks-section {
-      max-width: 100%;
       padding: var(--spacing-md);
     }
   }
 
   @media (max-width: 640px) {
+    .focus-dashboard {
+      position: relative;
+    }
+
+    .sidebar-wrapper {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      z-index: 100;
+      box-shadow: 2px 0 12px rgba(0, 0, 0, 0.3);
+    }
+
     .dashboard-header {
       flex-direction: column;
-      gap: var(--spacing-md);
+      gap: var(--spacing-sm);
+      padding: var(--spacing-md);
     }
 
     .dashboard-header h1 {
-      font-size: 24px;
+      font-size: clamp(18px, 3.5vw, 22px);
     }
 
-    .capacity-compact {
+    .header-left {
+      gap: var(--spacing-sm);
+    }
+
+    .header-actions {
       align-self: flex-start;
+      gap: var(--spacing-md);
+    }
+
+    .stat-value {
+      font-size: 18px;
+    }
+
+    .tasks-section {
+      padding: var(--spacing-md);
+    }
+
+    .quick-add-section {
+      margin-top: var(--spacing-lg);
+      padding-top: var(--spacing-lg);
+    }
+
+    .quick-add-section h3 {
+      font-size: var(--font-size-md);
     }
   }
 </style>

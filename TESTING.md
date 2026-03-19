@@ -24,102 +24,78 @@ This command:
 
 ### Test 1: App Launches & Renders UI
 - [ ] Native Tauri window opens on macOS
-- [ ] "Today's Focus" dashboard visible
+- [ ] Dashboard visible with sidebar filters
 - [ ] Empty state message appears (no tasks yet)
-- [ ] CapacityBar shows at top
-- [ ] QuickAddInput ("+ Add a task...") visible at bottom
+- [ ] QuickAddInput visible at bottom
 
 ### Test 2: Create a Task
-- [ ] Click input field or type "+ Add a task"
-- [ ] Enter: "Design login screen"
+- [ ] Press `/` or click the quick add field
+- [ ] Enter: "Design login screen ~30m !high @tomorrow 3pm"
 - [ ] Press Enter key
 - [ ] Task appears in list
 - [ ] Input clears for next task
-- [ ] Task shows as uncertain until refresh
+- [ ] Task remains after refresh/restart
 
 ### Test 3: Task Display & Metadata
 - [ ] Task title visible
-- [ ] Priority badge shows (default: "MEDIUM" in orange)
-- [ ] Due date shows if set (currently shows today by default)
-- [ ] Time estimate shows (e.g., "60m")
+- [ ] Priority badge shows the selected priority
+- [ ] Due date shows with time if set
+- [ ] Time estimate shows as metadata if set
 - [ ] Hover effect on task card
 
 ### Test 4: Toggle Task Complete
 - [ ] Click checkbox on left of task
 - [ ] Checkbox fills with blue checkmark
 - [ ] Task title becomes strikethrough + faded
-- [ ] Task remains in list (Phase 3: option to hide completed)
+- [ ] Task hides immediately when "Show completed" is off
+- [ ] Task remains visible when "Show completed" is on
 
-### Test 5: Open Task Detail Panel
-- [ ] Click on task title
-- [ ] Modal panel slides in from right (or overlays)
-- [ ] Displays full task details:
-  - Title
-  - Description (if any)
-  - Due date
-  - Priority level
-  - Time estimate
-  - Status (Active/Completed)
-- [ ] "Edit" button visible
-- [ ] "Delete" button visible
-- [ ] "Cancel" button to close
+### Test 5: Expand Inline Task Editor
+- [ ] Click on a task card
+- [ ] Inline task editor opens under the task
+- [ ] Notes field is editable
+- [ ] Due date/time field is editable
+- [ ] Time estimate field accepts "30m", "2h", or raw minutes
+- [ ] Archive button visible
 
 ### Test 6: Edit Task
-- [ ] Open task detail panel
-- [ ] Click "Edit" button
-- [ ] Form fields become editable
+- [ ] Open the detail panel
 - [ ] Edit title: "Design login screen" → "Design login & signup screens"
-- [ ] Click "Save" button
-- [ ] Modal closes
+- [ ] Click "Done"
 - [ ] Updated title shows in task list
 
-### Test 7: Delete Task
-- [ ] Open task detail panel
-- [ ] Click "Delete" button
-- [ ] Confirm deletion (if prompt shown)
-- [ ] Task removed from list
-- [ ] CapacityBar updates
+### Test 7: Archive Task
+- [ ] Open the inline editor
+- [ ] Click "Archive" button
+- [ ] Confirm archive
+- [ ] Task removed from the active list
 
 ### Test 8: Add Task with All Fields
 - [ ] Create new task
-- [ ] Open detail panel
-- [ ] Edit with:
-  - Title: "Weekly standup"
-  - Priority: "HIGH"
-  - Time estimate: 30 minutes
-  - Due date: tomorrow
+- [ ] Open details panel
+- [ ] Edit with title, priority, time estimate, due date/time, and notes
 - [ ] Task shows in list with red priority badge
-- [ ] CapacityBar updated
 
-### Test 9: Capacity Bar Updates
-- [ ] Add multiple tasks with time estimates:
-  - Task 1: 60 minutes
-  - Task 2: 120 minutes
-  - Task 3: 240 minutes
-  - Total: 420m = 7 hours
-- [ ] CapacityBar shows "7h / 8h left: 1h" (green, under capacity)
-- [ ] Add one more 2-hour task
-- [ ] CapacityBar shows "Over capacity" (red, 1h over)
-
-### Test 10: Multiple Tasks Sorting
+### Test 9: Multiple Tasks Sorting
 - [ ] Create 5 tasks with different priorities & due dates:
   - Task A: Medium, tomorrow
   - Task B: Low, today
   - Task C: High, in 3 days
   - Task D: High, today
   - Task E: Medium, today
-- [ ] List should be sorted: **Focus first → Due date → Priority**
+- [ ] List should be sorted: **Due date → Priority**
   - Task D (High, today) at top
-  - Task B (Low, today) below
   - Task E (Medium, today) below
+  - Task B (Low, today) below
   - Task A (Medium, tomorrow) below
   - Task C (High, in 3 days) at bottom
 
-### Test 11: Search & Filter (Phase 1 - view all)
-- [ ] Currently no UI for search/filter
-- [ ] All created tasks visible in "Today's Focus"
+### Test 10: View Filters
+- [ ] Switch between Today, Upcoming, Overdue, and All
+- [ ] Lists refresh to match the selected view
+- [ ] "Show completed" survives refresh and reloads completed tasks
 
-### Test 12: System Theme Detection
+### Test 11: System Theme Detection
 - [ ] macOS Settings → General → Appearance → *Light*
 - [ ] App refreshes to light theme:
   - White background
@@ -131,7 +107,7 @@ This command:
   - Light text
   - Dark cards
 
-### Test 13: App Persistence
+### Test 12: App Persistence
 - [ ] Create 3 tasks
 - [ ] Close Tauri app window
 - [ ] Restart: `npm run tauri:dev`
@@ -139,10 +115,10 @@ This command:
   - ✅ If present: Database persistence working
   - ❌ If missing: Check SQLite database file
 
-### Test 14: Error Handling (Late - Phase 3)
+### Test 13: Error Handling
 - [ ] Try to create task with empty title (should show validation error)
 - [ ] Force offline (disconnect WiFi)
-- [ ] See if error handling UI appears (Phase 3)
+- [ ] Confirm app still behaves gracefully with local data
 
 ---
 
@@ -169,12 +145,12 @@ This validates all Tauri command handlers work correctly.
 ### Database File Location
 ```bash
 # macOS database location:
-~/Library/Application\ Support/com.deadlinetracker.app/data/deadline_tracker.db
+~/Library/Application\ Support/deadline-tracker/deadline-tracker.db
 ```
 
 Extract with SQLite:
 ```bash
-sqlite3 ~/Library/Application\ Support/com.deadlinetracker.app/data/deadline_tracker.db
+sqlite3 ~/Library/Application\ Support/deadline-tracker/deadline-tracker.db
 .tables
 SELECT * FROM tasks;
 ```
@@ -203,9 +179,9 @@ SELECT * FROM tasks;
 - ❌ No error boundary UI (crashes show blank) (Phase 3)
 - ❌ No categories UI (backend ready)
 - ❌ No subtasks UI (backend ready)
-- ❌ No search/filter UI (backend ready)
+- ❌ No search UI
 - ❌ No recurring tasks (Phase 2)
-- ❌ No dark mode toggle UI (auto-detection only)
+- ❌ No recurring tasks UI
 - ❌ No import/export (Phase 3)
 - ❌ No cloud sync (Future)
 

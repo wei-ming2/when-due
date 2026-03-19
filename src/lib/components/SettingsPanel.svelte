@@ -36,17 +36,23 @@
     if (unsubscribe) unsubscribe();
   });
 
-  function handleSelectChange(e: Event) {
-    const target = e.target as HTMLSelectElement;
-    handleThemeChange(target.value as ThemeMode);
+  function handleRetentionChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    uiState.setCompletedRetentionDays(Number(target.value));
   }
+
+  const handleKeydown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleClose();
+    }
+  };
 </script>
 
 {#if isOpen}
-  <div class="modal-overlay" on:click={handleClose} role="button" tabindex="0">
-    <div class="modal-content" on:click|stopPropagation>
+  <div class="modal-overlay" on:click|self={handleClose} on:keydown={handleKeydown} role="presentation" tabindex="-1">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div class="modal-header">
-        <h2>Settings</h2>
+        <h2 id="settings-title">Settings</h2>
         <button class="close-btn" on:click={handleClose} aria-label="Close settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M18 6L6 18M6 6l12 12" stroke-width="2" stroke-linecap="round" />
@@ -58,17 +64,35 @@
         <div class="settings-group">
           <h3>Appearance</h3>
           <div class="setting-item">
-            <label for="theme-select">Theme</label>
-            <select id="theme-select" value={$uiState.themeMode} on:change={handleSelectChange}>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="system">System</option>
-            </select>
+            <div class="setting-label">Theme</div>
+            <div class="theme-toggle" role="group" aria-label="Theme">
+              <button
+                class="theme-btn"
+                class:active={$uiState.themeMode === 'light'}
+                on:click={() => handleThemeChange('light')}
+              >
+                Light
+              </button>
+              <button
+                class="theme-btn"
+                class:active={$uiState.themeMode === 'dark'}
+                on:click={() => handleThemeChange('dark')}
+              >
+                Dark
+              </button>
+              <button
+                class="theme-btn"
+                class:active={$uiState.themeMode === 'system'}
+                on:click={() => handleThemeChange('system')}
+              >
+                System
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="settings-group">
-          <h3>View Preferences</h3>
+          <h3>Task Lifecycle</h3>
           <div class="setting-item">
             <label for="show-completed">
               <input
@@ -80,12 +104,26 @@
               Show completed tasks
             </label>
           </div>
+
+          <div class="setting-item">
+            <label for="completed-retention-days">Auto-archive completed tasks after (days)</label>
+            <input
+              id="completed-retention-days"
+              type="number"
+              min="0"
+              max="365"
+              step="1"
+              value={$uiState.completedRetentionDays}
+              on:change={handleRetentionChange}
+            />
+            <p class="setting-hint">Set this to `0` if you want completed items archived immediately.</p>
+          </div>
         </div>
 
         <div class="about-section">
           <h3>About</h3>
-          <p>Deadline Tracker v0.1.0</p>
-          <p class="hint">A focused task management app for daily productivity</p>
+          <p>When Due v0.1.0</p>
+          <p class="hint">A focused desktop app for tracking deadlines without the usual clutter.</p>
         </div>
       </div>
     </div>
@@ -201,12 +239,47 @@
     font-weight: 500;
   }
 
+  .setting-label {
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+  }
+
   .setting-item input[type='checkbox'] {
     margin-right: var(--spacing-sm);
     cursor: pointer;
   }
 
-  select {
+  .theme-toggle {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .theme-btn {
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .theme-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(0);
+  }
+
+  .theme-btn.active {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.12);
+  }
+
+  .setting-item input[type='number'] {
     width: 100%;
     padding: var(--spacing-sm) var(--spacing-md);
     border: 1px solid var(--border-color);
@@ -218,14 +291,20 @@
     transition: all var(--transition-fast);
   }
 
-  select:hover {
+  .setting-item input[type='number']:hover {
     border-color: var(--accent);
   }
 
-  select:focus {
+  .setting-item input[type='number']:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 2px var(--accent-light);
+  }
+
+  .setting-hint {
+    margin: var(--spacing-xs) 0 0 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
   }
 
   .about-section {

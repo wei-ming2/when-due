@@ -230,7 +230,7 @@ console.log('Completed at:', task.completedAt);
 
 ### `toggle_focus`
 
-Add or remove task from "Today's Focus".
+Legacy command for marking a task as focused. The current UI does not surface this as a primary workflow.
 
 **Request:**
 ```typescript

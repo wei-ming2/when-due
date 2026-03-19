@@ -1,11 +1,11 @@
 {
-  "name": "deadline-tracker",
+  "name": "when-due",
   "version": "0.1.0",
   "private": true,
-  "description": "Minimal, intuitive deadline tracking application",
+  "description": "A focused macOS deadline tracker with a clear sense of when things are due",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/deadline-tracker"
+      "url": "https://github.com/yourusername/deadline-tracker"
   },
   "author": {
     "name": "Weiming",
@@ -46,6 +46,7 @@
     "vitest": "^1.0.0"
   },
   "dependencies": {
+    "date-fns": "^4.1.0",
     "uuid": "^9.0.0"
   },
   "engines": {

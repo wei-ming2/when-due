@@ -1,29 +1,29 @@
-// UI state store for view mode, filters, and theme
+// UI state store for filters and theme
 import { writable } from 'svelte/store';
 
-export type ViewMode = 'focus' | 'all' | 'tasks-list';
 export type FilterMode = 'today' | 'week' | 'overdue' | 'all';
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface UIState {
-  viewMode: ViewMode;
   filterMode: FilterMode;
   themeMode: ThemeMode;
   currentTheme: 'light' | 'dark';
+  completedRetentionDays: number;
   selectedCategoryId?: string;
   selectedPriorities: Set<string>; // 'high' | 'medium' | 'low'
   showCompleted: boolean;
   sidebarVisible: boolean; // Show/hide filter sidebar
-  taskBeingEdited?: string; // Task ID being edited
 }
 
 function createUIStore() {
+  const STORAGE_VERSION = 3;
+
   // Initialize from browser storage if available
   let initialState: UIState = {
-    viewMode: 'focus',
-    filterMode: 'today',
+    filterMode: 'all',
     themeMode: 'system',
     currentTheme: getSystemTheme(),
+    completedRetentionDays: 7,
     selectedPriorities: new Set<string>(),
     showCompleted: false,
     sidebarVisible: true,
@@ -35,11 +35,28 @@ function createUIStore() {
       const stored = localStorage.getItem('deadline-tracker-ui');
       if (stored) {
         const parsed = JSON.parse(stored);
+        const storageVersion =
+          typeof parsed.storageVersion === 'number' ? parsed.storageVersion : 1;
         // Convert stored array back to Set
         if (parsed.selectedPriorities && Array.isArray(parsed.selectedPriorities)) {
           parsed.selectedPriorities = new Set(parsed.selectedPriorities);
+          if (parsed.selectedPriorities.size > 1) {
+            parsed.selectedPriorities = new Set<string>();
+          }
         } else {
           parsed.selectedPriorities = new Set<string>();
+        }
+        if (
+          typeof parsed.completedRetentionDays !== 'number' ||
+          Number.isNaN(parsed.completedRetentionDays)
+        ) {
+          parsed.completedRetentionDays = 7;
+        }
+        if (!parsed.filterMode || !['today', 'week', 'overdue', 'all'].includes(parsed.filterMode)) {
+          parsed.filterMode = 'all';
+        }
+        if (storageVersion < STORAGE_VERSION && parsed.filterMode === 'today') {
+          parsed.filterMode = 'all';
         }
         initialState = { ...initialState, ...parsed };
       }
@@ -58,6 +75,7 @@ function createUIStore() {
         const stateToSave = {
           ...state,
           selectedPriorities: Array.from(state.selectedPriorities),
+          storageVersion: STORAGE_VERSION,
         };
         localStorage.setItem('deadline-tracker-ui', JSON.stringify(stateToSave));
       } catch (error) {
@@ -81,10 +99,6 @@ function createUIStore() {
   return {
     subscribe,
 
-    setViewMode(mode: ViewMode) {
-      update((state) => ({ ...state, viewMode: mode }));
-    },
-
     setFilterMode(mode: FilterMode) {
       update((state) => ({ ...state, filterMode: mode }));
     },
@@ -101,6 +115,11 @@ function createUIStore() {
       update((state) => ({ ...state, currentTheme: theme }));
     },
 
+    setCompletedRetentionDays(days: number) {
+      const nextDays = Math.min(Math.max(Math.round(days), 0), 365);
+      update((state) => ({ ...state, completedRetentionDays: nextDays }));
+    },
+
     setSelectedCategory(categoryId?: string) {
       update((state) => ({ ...state, selectedCategoryId: categoryId }));
     },
@@ -115,10 +134,8 @@ function createUIStore() {
 
     togglePriority(priority: string) {
       update((state) => {
-        const updated = new Set(state.selectedPriorities);
-        if (updated.has(priority)) {
-          updated.delete(priority);
-        } else {
+        const updated = new Set<string>();
+        if (!state.selectedPriorities.has(priority) || state.selectedPriorities.size !== 1) {
           updated.add(priority);
         }
         return { ...state, selectedPriorities: updated };
@@ -135,10 +152,6 @@ function createUIStore() {
 
     setSidebarVisible(visible: boolean) {
       update((state) => ({ ...state, sidebarVisible: visible }));
-    },
-
-    setTaskBeingEdited(taskId?: string) {
-      update((state) => ({ ...state, taskBeingEdited: taskId }));
     },
   };
 }

@@ -1,6 +1,6 @@
-# ⏰ Deadline Tracker
+# Deadline Tracker
 
-A minimal, intuitive desktop application for managing deadlines and tasks. Built for clarity, speed, and simplicity—no more cluttered productivity tools.
+A lightweight desktop app for tracking deadlines without the clutter of a full productivity suite.
 
 **Status:** ✅ **v0.1.0 Released** – Core MVP complete and ready to use  
 **Latest Release:** [Download v0.1.0](https://github.com/yourusername/deadline-tracker/releases/tag/v0.1.0)
@@ -8,45 +8,25 @@ A minimal, intuitive desktop application for managing deadlines and tasks. Built
 ## Features (v0.1.0)
 
 ### ✅ Implemented
-- **Task Management**: Create, edit, delete tasks with full metadata
-- **Priority System**: High, Medium, Low with color-coded visual indicators
-- **Time Estimation**: Per-task time estimates with automatic capacity calculation
-- **Due Dates**: Set due dates and filter by today/overdue
-- **Today's Focus Dashboard**: Single-screen view of today's tasks sorted by focus, due date, and priority
-- **Focus Mode**: Mark tasks as "focus" to highlight critical work
-- **Completion Tracking**: Check off tasks with visual feedback (strikethrough)
-- **Dark Mode**: System preference detection with automatic theme switching
-- **Persistence**: SQLite database ensures tasks survive app restarts
-- **Capacity Planning**: Real-time capacity bar showing time commitment vs. available hours
+- **Fast Capture**: Add tasks with keyboard-first quick input from `/` or `Cmd/Ctrl+K`
+- **Deadline Parsing**: Support inputs like `Chem hw ~2h @24 2300` and `Essay !high @tomorrow 6pm`
+- **Deadline Views**: Today, Upcoming, Overdue, and All
+- **Inline Editing**: Expand a task in place to edit notes, due date, estimate, priority, tag, and subtasks
+- **Priority + Tags**: Filter tasks and set defaults from the sidebar
+- **Completion Tracking**: Complete tasks and auto-archive older completions
+- **Local Persistence**: SQLite-backed storage so tasks survive restarts
+- **Dark Mode**: Light, dark, or system theme
 
 ### 🎯 Planned (v0.2+)
-- Categories/Projects organization
-- Subtasks with checklist
-- Keyboard shortcuts (⌘N, ⌘K, Escape, etc.)
-- Advanced filtering and search
-- Recurring/repeating tasks
+- Better keyboard navigation across the task list
+- Search and saved views
+- Subtasks only if they improve deadline planning
 - Local desktop notifications
-- Drag-and-drop prioritization
-- Export to JSON/CSV
-
-### 💭 Future (v0.3+)
-- Optional end-to-end encrypted cloud sync
-- Mobile companion app (iOS/Android)
-- Time tracking & analytics
-- Collaborative task sharing
+- Export / backup
 
 ## Screenshots
 
 (Coming soon!)
-
-## Quick Start
-
-### Prerequisites
-- Node.js 18+
-- Rust 1.70+
-- Git
-
-### Installation & Development
 
 ## Quick Start
 
@@ -79,12 +59,11 @@ npm run tauri build
 
 ## Quick Usage Guide
 
-1. **Add a Task**: Click the input at the bottom, type task title, press Enter
-2. **Edit**: Click task title to open detail panel with edit option
-3. **Complete**: Click checkbox to mark done (strikethrough effect)
-4. **Check Capacity**: See the capacity bar at top—brown shows available time, red shows over capacity
-5. **Focus Task**: (Coming v0.2—currently all active tasks shown)
-6. **Dark Mode**: Automatically follows your macOS system preference
+1. **Capture Fast**: Press `/` or `Cmd/Ctrl+K`, then type something like `Physics homework ~45m !high @tomorrow 3pm`
+2. **Switch Views**: Use the left sidebar to jump between Today, Upcoming, Overdue, and All
+3. **Expand In Place**: Click a task when you want to edit its due time, notes, tag, estimate, or subtasks
+4. **Complete Cleanly**: Use the checkbox to finish work and let older completions archive automatically
+5. **Stay Local**: Everything is stored on your machine
 
 ## Project Structure
 
