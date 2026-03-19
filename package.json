@@ -2,7 +2,7 @@
   "name": "when-due",
   "version": "0.1.0",
   "private": true,
-  "description": "A focused macOS deadline tracker with a clear sense of when things are due",
+  "description": "A focused desktop deadline tracker with a clear sense of when things are due",
   "repository": {
     "type": "git",
       "url": "https://github.com/yourusername/deadline-tracker"
@@ -20,6 +20,9 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "tauri:build:mac": "tauri build --target universal-apple-darwin",
+    "tauri:build:windows": "tauri build --target x86_64-pc-windows-msvc",
+    "tauri:build:windows:mac": "env PATH=\"/opt/homebrew/opt/llvm/bin:$PATH\" XWIN_CACHE_DIR=\"$PWD/.xwin-cache\" tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc",
     "lint": "eslint src --ext .ts,.svelte",
     "format": "prettier --write .",
     "type-check": "svelte-check --tsconfig ./tsconfig.json",

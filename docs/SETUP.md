@@ -1,6 +1,6 @@
 # Development Setup Guide
 
-This guide walks you through setting up your local development environment to build and run Deadline Tracker.
+This guide walks you through setting up your local development environment to build and run When Due.
 
 ## Prerequisites
 
@@ -134,9 +134,10 @@ npm run tauri build
 ```
 
 This creates:
-- **macOS:** `src-tauri/target/release/bundle/macos/Deadline Tracker.app`
-- **Windows:** `src-tauri/target/release/bundle/msi/Deadline Tracker_*.msi`
-- **Linux:** `src-tauri/target/release/bundle/appimage/Deadline Tracker_*.AppImage`
+- **macOS:** `src-tauri/target/release/bundle/macos/When Due.app`
+- **Windows on Windows host:** `src-tauri/target/release/bundle/msi/When Due_*.msi` or `src-tauri/target/release/bundle/nsis/When Due_*.exe`
+- **Windows cross-built from macOS:** `src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/When Due_*.exe`
+- **Linux:** `src-tauri/target/release/bundle/appimage/when-due_*.AppImage`
 
 Find releases in `src-tauri/target/release/`.
 
@@ -151,9 +152,10 @@ npm run tauri dev       # Start desktop app (requires npm run dev)
 npm run tauri dev:debug # Start with Rust debugging
 
 # Building
-npm run tauri build     # Build for production
+npm run tauri build     # Build for production on the current platform
 npm run tauri build --target universal-apple-darwin  # macOS Intel + Apple Silicon
-npm run tauri build --target x86_64-pc-windows-msvc  # Windows only
+npm run tauri build --target x86_64-pc-windows-msvc  # Windows build on a Windows host
+npm run tauri:build:windows:mac  # Windows NSIS installer cross-built from macOS
 
 # Testing
 npm run test            # Run frontend unit tests
@@ -254,7 +256,7 @@ npm run dev -- --port 3000
 **Solution:**
 ```bash
 # Delete the database file (warning: loses local data)
-rm ~/Library/Application\ Support/deadline-tracker/deadline-tracker.db
+rm ~/Library/Application\ Support/com.weiming.whendue/when-due.db
 
 # Restart app - it will recreate with schema
 npm run tauri dev

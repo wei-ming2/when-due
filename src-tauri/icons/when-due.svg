@@ -1,22 +1,26 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1024" height="1024" rx="232" fill="url(#bg)"/>
-  <rect x="156" y="156" width="712" height="712" rx="170" fill="url(#panel)" stroke="rgba(255,255,255,0.58)" stroke-width="8"/>
-  <rect x="266" y="286" width="492" height="408" rx="86" fill="#FFFFFF" stroke="#D8E4F8" stroke-width="20"/>
-  <rect x="266" y="286" width="492" height="116" rx="86" fill="#E9F1FF"/>
-  <circle cx="372" cy="344" r="22" fill="#2563EB"/>
-  <circle cx="652" cy="344" r="22" fill="#2563EB"/>
-  <circle cx="512" cy="520" r="118" fill="#F7FAFF" stroke="#2563EB" stroke-width="24"/>
-  <path d="M512 452V524L562 556" stroke="#2563EB" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="666" cy="418" r="44" fill="#F59E0B"/>
-  <path d="M666 390V418H694" stroke="white" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="74" y="74" width="876" height="876" rx="214" fill="url(#tile)"/>
+  <rect x="74" y="74" width="876" height="876" rx="214" stroke="url(#rim)" stroke-width="10"/>
+
+  <rect x="210" y="198" width="604" height="470" rx="116" fill="#FFFFFF" stroke="#D8E4F8" stroke-width="20"/>
+  <path d="M210 326C210 270.772 254.772 226 310 226H714C769.228 226 814 270.772 814 326V360H210V326Z" fill="#EAF2FF"/>
+  <rect x="296" y="150" width="30" height="116" rx="15" fill="#2563EB"/>
+  <rect x="698" y="150" width="30" height="116" rx="15" fill="#2563EB"/>
+
+  <circle cx="512" cy="542" r="154" fill="#F8FBFF" stroke="#2563EB" stroke-width="24"/>
+  <path d="M512 466V548L578 592" stroke="#2563EB" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <circle cx="742" cy="414" r="50" fill="#F59E0B"/>
+  <path d="M742 382V414H774" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+
   <defs>
-    <linearGradient id="bg" x1="112" y1="96" x2="928" y2="960" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#EEF5FF"/>
-      <stop offset="1" stop-color="#DCEAFF"/>
+    <linearGradient id="tile" x1="132" y1="108" x2="906" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFF5FF"/>
+      <stop offset="1" stop-color="#DCE9FF"/>
     </linearGradient>
-    <linearGradient id="panel" x1="208" y1="170" x2="822" y2="848" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#F2F7FF"/>
+    <linearGradient id="rim" x1="122" y1="104" x2="900" y2="930" gradientUnits="userSpaceOnUse">
+      <stop stop-color="rgba(255,255,255,0.72)"/>
+      <stop offset="1" stop-color="rgba(190,212,247,0.38)"/>
     </linearGradient>
   </defs>
 </svg>

@@ -1,4 +1,4 @@
-# Deadline Tracker
+# When Due
 
 A lightweight desktop app for tracking deadlines without the clutter of a full productivity suite.
 
@@ -34,7 +34,7 @@ A lightweight desktop app for tracking deadlines without the clutter of a full p
 
 **Option 1: Download Pre-built App (Recommended)**
 1. Go to [Releases](https://github.com/yourusername/deadline-tracker/releases/tag/v0.1.0)
-2. Download the `.dmg` file for macOS (or `.msi` for Windows, `.AppImage` for Linux)
+2. Download the installer for your platform: `.dmg` on macOS, `.exe` or `.msi` on Windows, `.AppImage` on Linux
 3. Install and launch
 
 **Option 2: Build from Source**
@@ -52,9 +52,21 @@ npm install
 # Run development build (hot-reload enabled)
 npm run tauri:dev
 
-# Or build production binary
+# Or build a production bundle for your current platform
 npm run tauri build
 # Output: src-tauri/target/release/bundle/
+
+# Platform-specific helpers
+npm run tauri:build:mac
+npm run tauri:build:windows
+npm run tauri:build:windows:mac
+```
+
+If you're developing on macOS and want to produce a Windows tester build for friends:
+
+```bash
+npm run tauri:build:windows:mac
+# Output: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/
 ```
 
 ## Quick Usage Guide
@@ -104,7 +116,7 @@ deadline-tracker/
 | **Styling** | Custom CSS | Full control, zero overhead, learning opportunity |
 | **Database** | SQLite | Lightweight, local-first, battle-tested |
 | **State** | Svelte stores | Built-in reactivity, minimal boilerplate |
-| **Build/Deploy** | GitHub Actions | Free CI/CD, auto cross-platform builds |
+| **Build/Deploy** | GitHub Actions | Free CI/CD, auto builds for macOS, Windows, and Linux |
 
 ## Contributing
 
