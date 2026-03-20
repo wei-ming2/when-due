@@ -9,6 +9,7 @@ interface UIState {
   themeMode: ThemeMode;
   currentTheme: 'light' | 'dark';
   completedRetentionDays: number;
+  completedSectionExpanded: boolean;
   selectedCategoryId?: string;
   selectedPriorities: Set<string>; // 'high' | 'medium' | 'low'
   showCompleted: boolean;
@@ -16,7 +17,7 @@ interface UIState {
 }
 
 function createUIStore() {
-  const STORAGE_VERSION = 3;
+  const STORAGE_VERSION = 4;
 
   // Initialize from browser storage if available
   let initialState: UIState = {
@@ -24,6 +25,7 @@ function createUIStore() {
     themeMode: 'system',
     currentTheme: getSystemTheme(),
     completedRetentionDays: 7,
+    completedSectionExpanded: false,
     selectedPriorities: new Set<string>(),
     showCompleted: false,
     sidebarVisible: true,
@@ -51,6 +53,9 @@ function createUIStore() {
           Number.isNaN(parsed.completedRetentionDays)
         ) {
           parsed.completedRetentionDays = 7;
+        }
+        if (typeof parsed.completedSectionExpanded !== 'boolean') {
+          parsed.completedSectionExpanded = false;
         }
         if (!parsed.filterMode || !['today', 'week', 'overdue', 'all'].includes(parsed.filterMode)) {
           parsed.filterMode = 'all';
@@ -130,6 +135,14 @@ function createUIStore() {
 
     setShowCompleted(show: boolean) {
       update((state) => ({ ...state, showCompleted: show }));
+    },
+
+    toggleCompletedSection() {
+      update((state) => ({ ...state, completedSectionExpanded: !state.completedSectionExpanded }));
+    },
+
+    setCompletedSectionExpanded(expanded: boolean) {
+      update((state) => ({ ...state, completedSectionExpanded: expanded }));
     },
 
     togglePriority(priority: string) {

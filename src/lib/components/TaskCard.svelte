@@ -1,5 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher, tick } from 'svelte';
+  import { quintOut } from 'svelte/easing';
+  import { fly } from 'svelte/transition';
   import type { Category, Task } from '../services/api';
   import { tasks } from '../stores/tasks';
   import { categories } from '../stores/categories';
@@ -199,6 +201,7 @@
 
   function handleClickOutside() {
     showPriorityMenu = false;
+    activeEditor = null;
   }
 
   function handleTitleKeydown(e: KeyboardEvent) {
@@ -232,6 +235,7 @@
   class="task-card"
   class:completed={task.status === 'completed'}
   class:expanded
+  class:overlay-open={Boolean(activeEditor || showPriorityMenu)}
   role="group"
   aria-label={task.title}
 >
@@ -285,37 +289,59 @@
       </div>
 
       <div class="task-summary">
-        <button
-          class="summary-pill due"
-          class:overdue={isOverdue}
-          class:empty={!task.dueDate}
-          on:click|stopPropagation={() => void openEditor('due')}
-          title={task.dueDate ? 'Edit due date' : 'Add due date'}
-        >
-          {#if task.dueDate}
+        {#if task.dueDate}
+          <button
+            class="summary-pill due"
+            class:overdue={isOverdue}
+            class:active={activeEditor === 'due'}
+            on:click|stopPropagation={() => void openEditor('due')}
+            title="Edit due date"
+          >
             {formatDeadlineDisplay(task.dueDate)}
-          {:else}
-            Due
-          {/if}
-        </button>
+          </button>
+        {:else}
+          <button
+            class="summary-icon-button"
+            class:active={activeEditor === 'due'}
+            on:click|stopPropagation={() => void openEditor('due')}
+            title="Add due date"
+            aria-label="Add due date"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M8 2v4M16 2v4M3 10h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        {/if}
 
-        <button
-          class="summary-pill estimate"
-          class:empty={!task.timeEstimate}
-          on:click|stopPropagation={() => void openEditor('estimate')}
-          title={task.timeEstimate ? 'Edit time estimate' : 'Add time estimate'}
-        >
-          {#if task.timeEstimate}
+        {#if task.timeEstimate}
+          <button
+            class="summary-pill estimate"
+            class:active={activeEditor === 'estimate'}
+            on:click|stopPropagation={() => void openEditor('estimate')}
+            title="Edit time estimate"
+          >
             ~{formatTimeEstimate(task.timeEstimate)}
-          {:else}
-            Time
-          {/if}
-        </button>
+          </button>
+        {:else}
+          <button
+            class="summary-icon-button"
+            class:active={activeEditor === 'estimate'}
+            on:click|stopPropagation={() => void openEditor('estimate')}
+            title="Add time estimate"
+            aria-label="Add time estimate"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="8" stroke-width="1.8" />
+              <path d="M12 7v5l3 2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        {/if}
 
         {#if taskCategories.length > 0}
           {#each taskCategories.slice(0, 2) as category (category.id)}
             <button
               class="summary-pill category"
+              class:active={activeEditor === 'tag'}
               style={`--tag-color: ${category.color}`}
               on:click|stopPropagation={() => void openEditor('tag')}
               title="Edit tags"
@@ -331,11 +357,16 @@
           {/if}
         {:else}
           <button
-            class="summary-pill category empty"
+            class="summary-icon-button"
+            class:active={activeEditor === 'tag'}
             on:click|stopPropagation={() => void openEditor('tag')}
             title="Add tags"
+            aria-label="Add tags"
           >
-            Tags
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M20 10 12 18l-8-8V4h6l10 10Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+            </svg>
           </button>
         {/if}
 
@@ -351,7 +382,12 @@
       </div>
 
       {#if activeEditor}
-        <div class="inline-editor" class:wide={activeEditor === 'tag'}>
+        <div
+          class="inline-editor"
+          class:wide={activeEditor === 'tag'}
+          in:fly={{ y: 6, duration: 160, easing: quintOut }}
+          out:fly={{ y: -4, duration: 130, easing: quintOut }}
+        >
           {#if activeEditor === 'due'}
             <div class="editor-panel">
               <label class="editor-field">
@@ -455,12 +491,13 @@
   </div>
 </div>
 
-{#if showPriorityMenu}
+{#if showPriorityMenu || activeEditor}
   <div class="backdrop" role="presentation" on:click={handleClickOutside} />
 {/if}
 
 <style>
   .task-card {
+    position: relative;
     padding: 14px 16px;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
@@ -470,6 +507,10 @@
       background-color var(--transition-normal),
       box-shadow var(--transition-normal);
     box-shadow: var(--shadow-sm);
+  }
+
+  .task-card.overlay-open {
+    z-index: 12;
   }
 
   .task-card:hover,
@@ -622,10 +663,9 @@
     gap: 6px;
   }
 
-  .summary-pill.empty {
-    background: var(--bg-primary);
-    border-color: var(--border-color);
-    color: var(--text-tertiary);
+  .summary-pill.active {
+    border-color: color-mix(in srgb, var(--accent) 28%, var(--border-color));
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
   }
 
   .summary-pill.due {
@@ -670,8 +710,37 @@
     flex-shrink: 0;
   }
 
+  .summary-icon-button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .summary-icon-button:hover,
+  .summary-icon-button.active {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border-color));
+    background: color-mix(in srgb, var(--accent-light) 70%, white);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+  }
+
+  .summary-icon-button svg {
+    width: 14px;
+    height: 14px;
+  }
+
   .inline-editor {
-    width: min(360px, 100%);
+    position: absolute;
+    top: calc(100% - 4px);
+    left: 48px;
+    width: min(360px, calc(100vw - 96px));
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -679,11 +748,12 @@
     border-radius: calc(var(--radius-md) + 2px);
     border: 1px solid var(--border-color);
     background: color-mix(in srgb, var(--bg-primary) 92%, white);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
+    z-index: 40;
   }
 
   .inline-editor.wide {
-    width: min(420px, 100%);
+    width: min(420px, calc(100vw - 96px));
   }
 
   .editor-panel {
@@ -886,6 +956,12 @@
     .task-meta {
       width: 100%;
       justify-content: flex-end;
+    }
+
+    .inline-editor,
+    .inline-editor.wide {
+      left: 0;
+      width: min(100%, 420px);
     }
 
     .title-row {

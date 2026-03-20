@@ -98,11 +98,10 @@ export function parseTaskInput(input: string): {
 
   // Legacy @ format support
   if (!deadline && title.includes('@')) {
-    const [titlePart, deadlinePart] = title.split('@', 2).map((s) => s.trim());
-    const parsedDeadline = parseDateTimeString(deadlinePart);
-    if (parsedDeadline) {
-      deadline = parsedDeadline.toISOString();
-      title = titlePart;
+    const extracted = extractAtDeadline(title);
+    if (extracted.deadline) {
+      deadline = extracted.deadline;
+      title = extracted.title;
     }
   }
 
@@ -132,22 +131,7 @@ export function parseDeadline(input: string): { title: string; deadline: string 
     return { title: input, deadline: null };
   }
 
-  const [titlePart, deadlinePart] = input.split('@', 2).map((s) => s.trim());
-
-  if (!deadlinePart) {
-    return { title: input, deadline: null };
-  }
-
-  try {
-    const deadline = parseDateTimeString(deadlinePart);
-    if (deadline) {
-      return { title: titlePart, deadline: deadline.toISOString() };
-    }
-  } catch (e) {
-    console.error('Failed to parse deadline:', e);
-  }
-
-  return { title: input, deadline: null };
+  return extractAtDeadline(input);
 }
 
 /**
@@ -161,6 +145,7 @@ function parseDateTimeString(input: string): Date | null {
     parseRelativeDate, // tomorrow, today, next week, etc.
     parseDayOfWeek, // monday, tuesday, etc.
     parseDayOfMonth, // 19 2pm, 19th at 14:00
+    parseDayMonthSlash, // 1/5 2300 => 1 May 23:00
     parseStandardDateTime, // 3/20 at 2pm, 2024-03-20 14:30, etc.
     parseStandardFormats, // 2024-03-20, 3/20, etc.
     parseTimeAndDate, // 3pm, 2:30pm, etc.
@@ -230,6 +215,30 @@ function parseRelativeDate(input: string): Date | null {
     }
   }
 
+  if (input.includes('next week')) {
+    const result = add(today, { weeks: 1 });
+    const timeMatch = input.match(/(\d{1,2}):?(\d{2})?\s*(am|pm)?/);
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1]);
+      const minutes = parseInt(timeMatch[2] || '0');
+      const isPm = timeMatch[3] === 'pm' || (hours < 12 && !timeMatch[3]);
+      result.setHours(
+        isPm && hours !== 12 ? hours + 12 : hours === 12 && !isPm ? 0 : hours,
+        minutes,
+        0,
+        0
+      );
+    } else {
+      result.setHours(23, 59, 0, 0);
+    }
+    return result;
+  }
+
+  if (input === 'eom' || input === 'end of month' || input === 'month end') {
+    const result = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 0, 0);
+    return result;
+  }
+
   return null;
 }
 
@@ -265,7 +274,7 @@ function parseTimeAndDate(input: string): Date | null {
   if (input.includes('/') || input.includes('-')) return null;
 
   // Match patterns like "3pm", "2:30am", "14:30", etc.
-  const timeMatch = input.match(/(\d{1,2}):?(\d{2})?\s*(am|pm)?/);
+  const timeMatch = input.match(/^(\d{1,2}):?(\d{2})?\s*(am|pm)?$/);
   if (!timeMatch) return null;
 
   const hours = parseInt(timeMatch[1]);
@@ -358,6 +367,59 @@ function parseStandardDateTime(input: string): Date | null {
   return null;
 }
 
+function parseDayMonthSlash(input: string): Date | null {
+  const match = input.match(
+    /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?:\s+(?:at\s+)?)?(?:(\d{4})|(\d{1,2})(?::?(\d{2}))?\s*(am|pm)?)?$/i
+  );
+  if (!match) return null;
+
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const yearToken = match[3];
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+
+  const now = new Date();
+  let year = yearToken
+    ? yearToken.length === 2
+      ? 2000 + parseInt(yearToken, 10)
+      : parseInt(yearToken, 10)
+    : now.getFullYear();
+
+  let candidate = new Date(year, month - 1, day);
+  if (
+    Number.isNaN(candidate.getTime()) ||
+    candidate.getDate() !== day ||
+    candidate.getMonth() !== month - 1
+  ) {
+    return null;
+  }
+
+  if (match[4] || match[5]) {
+    const hours = match[4] ? parseInt(match[4].slice(0, 2), 10) : parseInt(match[5], 10);
+    const minutes = match[4] ? parseInt(match[4].slice(2, 4), 10) : parseInt(match[6] || '0', 10);
+    const meridiem = match[7]?.toLowerCase();
+    if (hours > 23 || minutes > 59 || hours < 0 || minutes < 0) return null;
+    if (meridiem && (hours > 12 || hours === 0)) return null;
+    candidate.setHours(to24Hour(hours, meridiem), minutes, 0, 0);
+  } else {
+    candidate.setHours(23, 59, 0, 0);
+  }
+
+  if (!yearToken && candidate.getTime() < now.getTime()) {
+    year += 1;
+    candidate = new Date(year, month - 1, day, candidate.getHours(), candidate.getMinutes(), 0, 0);
+    if (
+      Number.isNaN(candidate.getTime()) ||
+      candidate.getDate() !== day ||
+      candidate.getMonth() !== month - 1
+    ) {
+      return null;
+    }
+  }
+
+  return candidate;
+}
+
 function parseStandardFormats(input: string): Date | null {
   // Try ISO format: 2024-03-20T14:30
   let result = parse(input, 'yyyy-MM-dd HH:mm', new Date());
@@ -396,4 +458,30 @@ function to24Hour(hours: number, meridiem?: string): number {
   if (meridiem === 'pm' && hours !== 12) return hours + 12;
   if (meridiem === 'am' && hours === 12) return 0;
   return hours;
+}
+
+function extractAtDeadline(input: string): { title: string; deadline: string | null } {
+  const matches = Array.from(input.matchAll(/(^|\s)@(?=\S)/g));
+
+  for (let index = matches.length - 1; index >= 0; index -= 1) {
+    const match = matches[index];
+    const markerIndex = (match.index ?? 0) + match[1].length;
+    const deadlinePart = input.slice(markerIndex + 1).trim();
+
+    if (!deadlinePart) continue;
+
+    try {
+      const parsedDeadline = parseDateTimeString(deadlinePart);
+      if (parsedDeadline) {
+        return {
+          title: input.slice(0, markerIndex).trim(),
+          deadline: parsedDeadline.toISOString(),
+        };
+      }
+    } catch (e) {
+      console.error('Failed to parse deadline:', e);
+    }
+  }
+
+  return { title: input, deadline: null };
 }

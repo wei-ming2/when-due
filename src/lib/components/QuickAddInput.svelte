@@ -21,6 +21,7 @@
   let previewDeadline: string | null = null;
   let previewEstimate: number | null = null;
   let previewReady = false;
+  let pendingAdds = 0;
 
   const dispatch = createEventDispatcher<{ created: { task: Task } }>();
 
@@ -38,43 +39,90 @@
     return 'medium';
   }
 
-  const handleSubmit = async () => {
-    if (!title.trim()) return;
+  async function submitParsedTask(
+    taskTitle: string,
+    deadline: string | null,
+    priority: 'low' | 'medium' | 'high',
+    timeEstimateMinutes: number | null,
+    categoryIds?: string[],
+    optimistic: boolean = true
+  ) {
+    pendingAdds += 1;
+    isAdding = pendingAdds > 0;
 
-    isAdding = true;
     try {
-      const {
-        title: taskTitle,
-        deadline,
-        priority,
-        prioritySpecified,
-        timeEstimateMinutes,
-      } = parseTaskInput(title.trim());
-      if (!taskTitle.trim()) {
-        return;
-      }
       const newTask = await tasks.create(
-        taskTitle, 
-        undefined,  // description 
-        deadline ?? undefined,  // dueDate
-        prioritySpecified ? priority : getDefaultPriority(),
-        timeEstimateMinutes ?? undefined,  // timeEstimate in minutes
-        $uiState.selectedCategoryId ? [$uiState.selectedCategoryId] : undefined
+        taskTitle,
+        undefined,
+        deadline ?? undefined,
+        priority,
+        timeEstimateMinutes ?? undefined,
+        categoryIds,
+        {
+          addToStore: optimistic,
+          optimistic,
+        }
       );
-      let targetFilterMode: FilterMode = $uiState.filterMode;
-      if (!matchesTaskFilterMode(newTask, targetFilterMode)) {
-        targetFilterMode = getTaskFilterMode(newTask);
-        uiState.setFilterMode(targetFilterMode);
+
+      if (!optimistic) {
+        const targetFilterMode = getTaskFilterMode(newTask);
+        if (targetFilterMode !== $uiState.filterMode) {
+          uiState.setFilterMode(targetFilterMode);
+        }
+        await tasks.loadTasks(targetFilterMode, true);
       }
 
-      await tasks.loadTasks(targetFilterMode, true);
       dispatch('created', { task: newTask });
-      title = '';
     } catch (error) {
       console.error('Failed to add task:', error);
     } finally {
-      isAdding = false;
+      pendingAdds = Math.max(0, pendingAdds - 1);
+      isAdding = pendingAdds > 0;
     }
+  }
+
+  const handleSubmit = () => {
+    const rawInput = title.trim();
+    if (!rawInput) return;
+
+    const {
+      title: taskTitle,
+      deadline,
+      priority,
+      prioritySpecified,
+      timeEstimateMinutes,
+    } = parseTaskInput(rawInput);
+
+    if (!taskTitle.trim()) {
+      return;
+    }
+
+    const resolvedPriority = prioritySpecified ? priority : getDefaultPriority();
+    const categoryIds = $uiState.selectedCategoryId ? [$uiState.selectedCategoryId] : undefined;
+    const draftTask: Task = {
+      id: 'draft',
+      title: taskTitle,
+      dueDate: deadline ?? undefined,
+      priority: resolvedPriority,
+      timeEstimate: timeEstimateMinutes ?? undefined,
+      categoryId: categoryIds?.[0],
+      categoryIds,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const shouldStayInCurrentView = matchesTaskFilterMode(draftTask, $uiState.filterMode);
+
+    title = '';
+    void submitParsedTask(
+      taskTitle,
+      deadline,
+      resolvedPriority,
+      timeEstimateMinutes,
+      categoryIds,
+      shouldStayInCurrentView
+    );
   };
 
   const handleKeydown = (e: KeyboardEvent) => {
@@ -131,10 +179,9 @@
       placeholder="Add a task... e.g. 'Chem hw ~2h @24 2300'"
       bind:value={title}
       on:keydown={handleKeydown}
-      disabled={isAdding}
     />
-    <button type="submit" disabled={!title.trim() || isAdding} aria-label="Add task">
-      {isAdding ? '⏳' : '↵'}
+    <button type="submit" disabled={!title.trim()} aria-label="Add task">
+      {pendingAdds > 0 ? `↵ ${pendingAdds}` : '↵'}
     </button>
   </form>
   <p class="quick-add-hint">Use `~` for an estimate, `@` for a deadline, and `!high`, `!medium`, or `!low` for priority.</p>

@@ -32,20 +32,63 @@ function createTasksStore() {
       dueDate?: string,
       priority: 'low' | 'medium' | 'high' = 'medium',
       timeEstimate?: number,
-      categoryIds?: string[]
+      categoryIds?: string[],
+      options: { addToStore?: boolean; optimistic?: boolean } = {}
     ) {
+      const addToStore = options.addToStore ?? true;
+      const optimistic = options.optimistic ?? addToStore;
+      const normalizedCategoryIds = categoryIds ? [...new Set(categoryIds.filter(Boolean))] : [];
+      const now = new Date().toISOString();
+      const optimisticId = `temp-${crypto.randomUUID()}`;
+      const optimisticTask: Task | null =
+        addToStore && optimistic
+          ? {
+              id: optimisticId,
+              title,
+              description,
+              dueDate,
+              priority,
+              timeEstimate,
+              categoryId: normalizedCategoryIds[0],
+              categoryIds: normalizedCategoryIds,
+              status: 'active',
+              createdAt: now,
+              updatedAt: now,
+              subtaskCount: 0,
+              subtaskCompletedCount: 0,
+            }
+          : null;
+
       try {
+        if (optimisticTask) {
+          update((tasks) => [...tasks, optimisticTask]);
+        }
+
         const newTask = await taskApi.createTask(
           title,
           description,
           dueDate,
           priority,
           timeEstimate,
-          categoryIds
+          normalizedCategoryIds
         );
-        update((tasks) => [...tasks, newTask]);
+
+        if (addToStore) {
+          update((tasks) => {
+            if (optimisticTask) {
+              return tasks.map((task) => (task.id === optimisticId ? newTask : task));
+            }
+
+            return [...tasks, newTask];
+          });
+        }
+
         return newTask;
       } catch (error) {
+        if (optimisticTask) {
+          update((tasks) => tasks.filter((task) => task.id !== optimisticId));
+        }
+
         console.error('Failed to create task:', error);
         throw error;
       }

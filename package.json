@@ -5,11 +5,14 @@
   "description": "A focused desktop deadline tracker with a clear sense of when things are due",
   "repository": {
     "type": "git",
-      "url": "https://github.com/yourusername/deadline-tracker"
+    "url": "https://github.com/wei-ming2/when-due.git"
   },
   "author": {
-    "name": "Weiming",
-    "email": "your.email@example.com"
+    "name": "Weiming"
+  },
+  "homepage": "https://github.com/wei-ming2/when-due",
+  "bugs": {
+    "url": "https://github.com/wei-ming2/when-due/issues"
   },
   "license": "MIT",
   "type": "module",

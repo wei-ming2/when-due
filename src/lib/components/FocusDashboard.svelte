@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { cubicOut } from 'svelte/easing';
-  import { slide } from 'svelte/transition';
+  import { fade, fly } from 'svelte/transition';
   import { visibleTasks, tasks } from '../stores/tasks';
   import type { Task } from '../services/api';
   import { uiState, type FilterMode } from '../stores/ui';
@@ -17,6 +17,8 @@
   let hasMounted = false;
   let lastQueryKey = '';
   let selectedTaskId: string | null = null;
+  let queryRefreshInterval: ReturnType<typeof setInterval> | null = null;
+  let midnightRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   const filterTitles: Record<FilterMode, string> = {
     today: 'Today',
@@ -33,6 +35,8 @@
   };
 
   $: queryKey = `${$uiState.filterMode}:${$uiState.completedRetentionDays}`;
+  $: activeTasks = $visibleTasks.filter((task) => task.status !== 'completed');
+  $: completedTasks = $visibleTasks.filter((task) => task.status === 'completed');
   $: if (selectedTaskId && !$tasks.find((task) => task.id === selectedTaskId)) {
     selectedTaskId = null;
   }
@@ -49,6 +53,38 @@
     }
   }
 
+  function clearMaintenanceTimers() {
+    if (queryRefreshInterval) {
+      clearInterval(queryRefreshInterval);
+      queryRefreshInterval = null;
+    }
+
+    if (midnightRefreshTimer) {
+      clearTimeout(midnightRefreshTimer);
+      midnightRefreshTimer = null;
+    }
+  }
+
+  function scheduleMidnightRefresh() {
+    if (midnightRefreshTimer) {
+      clearTimeout(midnightRefreshTimer);
+    }
+
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 5, 0);
+
+    midnightRefreshTimer = setTimeout(() => {
+      void syncQuery(`${$uiState.filterMode}:${$uiState.completedRetentionDays}`, true);
+      scheduleMidnightRefresh();
+    }, Math.max(1000, nextMidnight.getTime() - now.getTime()));
+  }
+
+  function handleForegroundSync() {
+    if (document.visibilityState !== 'visible') return;
+    void syncQuery(`${$uiState.filterMode}:${$uiState.completedRetentionDays}`, true);
+  }
+
   async function handleTaskCreated(event: CustomEvent<{ task: Task }>) {
     const { task } = event.detail;
     await tick();
@@ -61,6 +97,12 @@
   onMount(() => {
     hasMounted = true;
     void syncQuery(queryKey, true);
+    scheduleMidnightRefresh();
+    queryRefreshInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void syncQuery(`${$uiState.filterMode}:${$uiState.completedRetentionDays}`, true);
+      }
+    }, 15 * 60 * 1000);
 
     // Add global hotkey listener for quick add: "/" or "Ctrl+K" / "Cmd+K"
     const handleGlobalKeydown = (e: KeyboardEvent) => {
@@ -83,8 +125,15 @@
       }
     };
 
+    document.addEventListener('visibilitychange', handleForegroundSync);
+    window.addEventListener('focus', handleForegroundSync);
     window.addEventListener('keydown', handleGlobalKeydown);
-    return () => window.removeEventListener('keydown', handleGlobalKeydown);
+    return () => {
+      clearMaintenanceTimers();
+      document.removeEventListener('visibilitychange', handleForegroundSync);
+      window.removeEventListener('focus', handleForegroundSync);
+      window.removeEventListener('keydown', handleGlobalKeydown);
+    };
   });
 
   $: if (hasMounted) {
@@ -132,7 +181,7 @@
     </div>
 
     <div class="tasks-section">
-      {#if $visibleTasks.length === 0}
+      {#if activeTasks.length === 0 && completedTasks.length === 0}
         <div class="empty-state">
           <svg class="icon-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -143,7 +192,13 @@
         </div>
       {:else}
           <div class="tasks-list">
-            {#each $visibleTasks as task (task.id)}
+            {#if activeTasks.length === 0 && completedTasks.length > 0}
+              <div class="completed-empty-banner">
+                <p>All active deadlines are clear.</p>
+              </div>
+            {/if}
+
+            {#each activeTasks as task (task.id)}
               <div class="task-item" id={`task-item-${task.id}`}>
                 <TaskCard
                   {task}
@@ -153,14 +208,56 @@
                 {#if selectedTaskId === task.id}
                   <div
                     class="task-detail-wrap"
-                    in:slide={{ duration: 180, easing: cubicOut }}
-                    out:slide={{ duration: 180, easing: cubicOut }}
+                    in:fly={{ y: 6, duration: 180, easing: cubicOut }}
+                    out:fade={{ duration: 120 }}
                   >
                     <TaskDetailPanel task={task} on:close={() => (selectedTaskId = null)} />
                   </div>
                 {/if}
               </div>
             {/each}
+
+            {#if $uiState.showCompleted && completedTasks.length > 0}
+              <section class="completed-section">
+                <button
+                  class="completed-toggle"
+                  class:expanded={$uiState.completedSectionExpanded}
+                  on:click={() => uiState.toggleCompletedSection()}
+                  aria-expanded={$uiState.completedSectionExpanded}
+                >
+                  <span class="completed-toggle-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M9 6l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span>Completed</span>
+                  </span>
+                  <span class="completed-count">{completedTasks.length}</span>
+                </button>
+
+                {#if $uiState.completedSectionExpanded}
+                  <div class="completed-list">
+                    {#each completedTasks as task (task.id)}
+                      <div class="task-item completed-item" id={`task-item-${task.id}`}>
+                        <TaskCard
+                          {task}
+                          expanded={selectedTaskId === task.id}
+                          on:open={() => (selectedTaskId = selectedTaskId === task.id ? null : task.id)}
+                        />
+                        {#if selectedTaskId === task.id}
+                          <div
+                            class="task-detail-wrap"
+                            in:fly={{ y: 6, duration: 180, easing: cubicOut }}
+                            out:fade={{ duration: 120 }}
+                          >
+                            <TaskDetailPanel task={task} on:close={() => (selectedTaskId = null)} />
+                          </div>
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </section>
+            {/if}
           </div>
       {/if}
 
@@ -344,10 +441,12 @@
 
   .task-item {
     transform-origin: top center;
+    position: relative;
+    overflow: visible;
   }
 
   .task-detail-wrap {
-    overflow: hidden;
+    overflow: visible;
   }
 
   .empty-state {
@@ -385,6 +484,88 @@
     min-height: 0;
     overflow-y: auto;
     padding: 4px 2px 0 2px;
+  }
+
+  .completed-empty-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 18px;
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--border-color);
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--bg-secondary) 94%, white);
+  }
+
+  .completed-empty-banner p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+  }
+
+  .completed-section {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, var(--border-color) 88%, transparent);
+  }
+
+  .completed-toggle {
+    width: 100%;
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    background: color-mix(in srgb, var(--bg-secondary) 88%, white);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .completed-toggle:hover {
+    border-color: color-mix(in srgb, var(--accent) 20%, var(--border-color));
+    color: var(--text-primary);
+    transform: translateY(0);
+  }
+
+  .completed-toggle-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 650;
+  }
+
+  .completed-toggle svg {
+    width: 16px;
+    height: 16px;
+    transition: transform var(--transition-fast);
+  }
+
+  .completed-toggle.expanded svg {
+    transform: rotate(90deg);
+  }
+
+  .completed-count {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: var(--radius-pill);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  .completed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .quick-add-section {

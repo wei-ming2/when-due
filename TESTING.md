@@ -1,208 +1,104 @@
-# ✅ Deadline Tracker - Integration Testing Guide
+# Testing Guide
 
-## Current Status
-**Date**: March 18, 2026  
-**Phase**: 2/3 Complete (Phases 1 & 2 - **Backend** + **Frontend** ready for testing)
+This guide covers the checks that matter most before shipping a GitHub release of When Due.
 
----
+## Automated Checks
 
-## 🚀 App Launch Command
+Run all of these from the repo root:
 
 ```bash
-cd /Users/weiming/Documents/deadlines/deadline-tracker
-npm run tauri:dev
+npm run type-check
+npm test -- --run
+cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-This command:
-1. ✅ Starts **Vite dev server** on http://localhost:5173 (with hot-reload)
-2. ✅ Compiles **Rust backend** with Cargo (Tauri 2.0)
-3. ✅ Launches **Deadline Tracker** native macOS window
+These currently cover:
 
----
+- deadline parsing
+- time-estimate parsing and formatting
+- task view bucketing
+- task list visibility and sorting
 
-## 🧪 Manual Testing Checklist
+## Manual Smoke Test
 
-### Test 1: App Launches & Renders UI
-- [ ] Native Tauri window opens on macOS
-- [ ] Dashboard visible with sidebar filters
-- [ ] Empty state message appears (no tasks yet)
-- [ ] QuickAddInput visible at bottom
+### 1. Launch
 
-### Test 2: Create a Task
-- [ ] Press `/` or click the quick add field
-- [ ] Enter: "Design login screen ~30m !high @tomorrow 3pm"
-- [ ] Press Enter key
-- [ ] Task appears in list
-- [ ] Input clears for next task
-- [ ] Task remains after refresh/restart
+- Open the app
+- Confirm the main window renders without layout glitches
+- Confirm the sidebar, task list, and quick-add area all appear
 
-### Test 3: Task Display & Metadata
-- [ ] Task title visible
-- [ ] Priority badge shows the selected priority
-- [ ] Due date shows with time if set
-- [ ] Time estimate shows as metadata if set
-- [ ] Hover effect on task card
+### 2. Quick Add
 
-### Test 4: Toggle Task Complete
-- [ ] Click checkbox on left of task
-- [ ] Checkbox fills with blue checkmark
-- [ ] Task title becomes strikethrough + faded
-- [ ] Task hides immediately when "Show completed" is off
-- [ ] Task remains visible when "Show completed" is on
+Create tasks such as:
 
-### Test 5: Expand Inline Task Editor
-- [ ] Click on a task card
-- [ ] Inline task editor opens under the task
-- [ ] Notes field is editable
-- [ ] Due date/time field is editable
-- [ ] Time estimate field accepts "30m", "2h", or raw minutes
-- [ ] Archive button visible
+- `Chem hw ~2h @24 2300`
+- `Essay draft !high @tomorrow 6pm`
+- `MSS reading`
 
-### Test 6: Edit Task
-- [ ] Open the detail panel
-- [ ] Edit title: "Design login screen" → "Design login & signup screens"
-- [ ] Click "Done"
-- [ ] Updated title shows in task list
+Verify:
 
-### Test 7: Archive Task
-- [ ] Open the inline editor
-- [ ] Click "Archive" button
-- [ ] Confirm archive
-- [ ] Task removed from the active list
+- task appears immediately
+- title is clean
+- due date is parsed correctly
+- estimate is parsed correctly
+- priority defaults behave correctly
 
-### Test 8: Add Task with All Fields
-- [ ] Create new task
-- [ ] Open details panel
-- [ ] Edit with title, priority, time estimate, due date/time, and notes
-- [ ] Task shows in list with red priority badge
+### 3. Row Editing
 
-### Test 9: Multiple Tasks Sorting
-- [ ] Create 5 tasks with different priorities & due dates:
-  - Task A: Medium, tomorrow
-  - Task B: Low, today
-  - Task C: High, in 3 days
-  - Task D: High, today
-  - Task E: Medium, today
-- [ ] List should be sorted: **Due date → Priority**
-  - Task D (High, today) at top
-  - Task E (Medium, today) below
-  - Task B (Low, today) below
-  - Task A (Medium, tomorrow) below
-  - Task C (High, in 3 days) at bottom
+For an existing task:
 
-### Test 10: View Filters
-- [ ] Switch between Today, Upcoming, Overdue, and All
-- [ ] Lists refresh to match the selected view
-- [ ] "Show completed" survives refresh and reloads completed tasks
+- double-click the title and rename it
+- click the due pill and update the deadline
+- click the estimate pill and update the estimate
+- click the tag pill and add or remove multiple tags
+- change priority
 
-### Test 11: System Theme Detection
-- [ ] macOS Settings → General → Appearance → *Light*
-- [ ] App refreshes to light theme:
-  - White background
-  - Dark text
-  - Light cards
-- [ ] Switch to *Dark*
-- [ ] App switches to dark theme:
-  - Dark background (#0f172a)
-  - Light text
-  - Dark cards
+Verify each change persists after closing and reopening the app.
 
-### Test 12: App Persistence
-- [ ] Create 3 tasks
-- [ ] Close Tauri app window
-- [ ] Restart: `npm run tauri:dev`
-- [ ] Same 3 tasks still present
-  - ✅ If present: Database persistence working
-  - ❌ If missing: Check SQLite database file
+### 4. Notes And Subtasks
 
-### Test 13: Error Handling
-- [ ] Try to create task with empty title (should show validation error)
-- [ ] Force offline (disconnect WiFi)
-- [ ] Confirm app still behaves gracefully with local data
+- open a task
+- add a description
+- add several subtasks
+- complete one subtask
+- rename a subtask
+- delete a subtask
 
----
+Verify:
 
-## 🔍 Debugging Tips
+- notes auto-save
+- subtask counts update in the collapsed row
+- completed subtasks sort below active subtasks
 
-### Check Backend Logs
-- Rust backend logs appear in terminal running `npm run tauri:dev`
-- Look for SQL errors or handler crashes
+### 5. Filters
 
-### Check Frontend Logs
-- Press: **F12** in Tauri window (or Cmd+Option+I)
-- DevTools shows browser console
-- Check for JavaScript errors or failed IPC calls
+- switch between `Today`, `Upcoming`, `Overdue`, and `All`
+- filter by one priority
+- filter by one tag
+- clear filters
 
-### Verify IPC Communication
-Open browser DevTools console and run:
-```javascript
-// Import the test integration script (if needed)
-const { runAllTests } = await import('/test-integration.ts');
-await runAllTests();
-```
-This validates all Tauri command handlers work correctly.
+Verify the task list updates immediately and predictably.
 
-### Database File Location
-```bash
-# macOS database location:
-~/Library/Application\ Support/deadline-tracker/deadline-tracker.db
-```
+### 6. Completion Lifecycle
 
-Extract with SQLite:
-```bash
-sqlite3 ~/Library/Application\ Support/deadline-tracker/deadline-tracker.db
-.tables
-SELECT * FROM tasks;
-```
+- complete a task
+- turn `Show completed tasks` on and off in Settings
+- verify completed tasks hide when disabled
+- verify completed tasks remain visible when enabled
 
----
+### 7. Persistence
 
-## 📊 Expected Results
+- quit the app completely
+- relaunch
+- verify tasks, tags, notes, and subtasks persist
+- verify settings persist
 
-| Test | Expected | Result |
-|------|----------|--------|
-| App Launch | Window opens, UI renders | ✅ / ❌ |
-| Create Task | Task appears in list | ✅ / ❌ |
-| Toggle Complete | Checkbox fills, strikethrough | ✅ / ❌ |
-| Edit Task | Updates persist | ✅ / ❌ |
-| Delete Task | Removed from list | ✅ / ❌ |
-| Capacity Bar | Math correct, updates live | ✅ / ❌ |
-| Sorting | Priority + due date order | ✅ / ❌ |
-| Theme | System preference detected | ✅ / ❌ |
-| Persistence | Tasks survive app restart | ✅ / ❌ |
+## Release QA
 
----
+Before cutting a release:
 
-## 🐛 Known Limitations (Phase 1 MVP)
-
-- ❌ No keyboard shortcuts yet (Phase 3)
-- ❌ No error boundary UI (crashes show blank) (Phase 3)
-- ❌ No categories UI (backend ready)
-- ❌ No subtasks UI (backend ready)
-- ❌ No search UI
-- ❌ No recurring tasks (Phase 2)
-- ❌ No recurring tasks UI
-- ❌ No import/export (Phase 3)
-- ❌ No cloud sync (Future)
-
----
-
-## ✅ Next Steps After Testing
-
-1. **If all tests pass**:
-   - Proceed to Phase 3: Polish, keyboard shortcuts, error handling
-   - Add missing UI for categories, search, filters
-   - Prepare GitHub Actions for macOS DMG builds
-   - Create release notes
-   - Tag v0.1.0 and publish to GitHub
-
-2. **If tests fail**:
-   - Check database initialization
-   - Verify Rust handlers are returning correct JSON
-   - Check Tauri IPC event names match between frontend & backend
-   - Review browser console (F12) for JavaScript errors
-
----
-
-**Last Updated**: March 18, 2026 @ 13:45 UTC  
-**Build Status**: ✅ Frontend compiles, ✅ Backend compiles, ✅ Dev environment running
+- confirm app name is `When Due`
+- confirm repository links point to `wei-ming2/when-due`
+- confirm macOS app bundle launches from Finder
+- confirm Windows installer artifact exists if Windows testing is part of the release
+- confirm docs do not mention old product names or removed concepts like focus mode
