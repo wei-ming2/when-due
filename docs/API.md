@@ -165,3 +165,4 @@ Categories are used as tags in the current product.
 
 - The frontend wrapper in `src/lib/services/api.ts` handles the camelCase-to-snake_case argument mapping expected by the Rust commands.
 - The current UI does not expose every backend capability as a dedicated screen. The API is slightly broader than the visible surface.
+- Desktop deadline reminders are handled in the frontend by `src/lib/services/notifications.ts` using Tauri's notification plugin rather than custom app commands.

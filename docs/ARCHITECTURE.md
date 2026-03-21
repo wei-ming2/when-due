@@ -37,7 +37,7 @@ SQLite
 - `TaskDetailPanel.svelte`
   Expanded notes and subtasks only. It is no longer the main task-editing surface.
 - `SettingsPanel.svelte`
-  Theme, completed-task visibility, and archive-retention settings.
+  Theme, deadline-reminder settings, completed-task visibility, and archive-retention settings.
 
 ### Frontend State
 
@@ -46,7 +46,9 @@ SQLite
 - `categories.ts`
   Holds tag data.
 - `ui.ts`
-  Holds view filters, theme choice, completed visibility, and sidebar state.
+  Holds view filters, reminder settings, theme choice, completed visibility, and sidebar state.
+- `notifications.ts`
+  Keeps OS deadline reminders in sync with the current task data and user settings.
 
 ### UI Model
 
@@ -76,6 +78,7 @@ These commands are registered in `src-tauri/src/main.rs`.
 - completed-task archiving after a configurable retention window
 - multi-tag syncing through the `task_tags` table
 - subtask CRUD with count rollups exposed back to the frontend
+- Tauri notification plugin registration for desktop deadline reminders
 
 ## Data Flow
 
@@ -83,9 +86,9 @@ These commands are registered in `src-tauri/src/main.rs`.
 
 1. User types into quick add
 2. `deadline-parser.ts` extracts title, estimate, priority, and due date
-3. `tasks.create(...)` calls the Tauri backend
+3. `tasks.create(...)` adds the task optimistically when it belongs in the current view
 4. Rust inserts the task into SQLite
-5. Frontend reloads the active query and shows the task
+5. The notification sync service refreshes scheduled reminders in the background
 
 ### Editing A Task
 
@@ -93,6 +96,7 @@ These commands are registered in `src-tauri/src/main.rs`.
 2. Row-level editors call `tasks.update(...)`
 3. The store applies optimistic local updates after the backend responds
 4. Notes and subtasks are managed separately inside the expanded panel
+5. Reminder schedules are refreshed if the due date changes
 
 ## Platform Support
 

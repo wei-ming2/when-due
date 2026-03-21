@@ -16,6 +16,7 @@ These currently cover:
 
 - deadline parsing
 - time-estimate parsing and formatting
+- reminder timing and notification planning
 - task view bucketing
 - task list visibility and sorting
 
@@ -92,6 +93,16 @@ Verify the task list updates immediately and predictably.
 - relaunch
 - verify tasks, tags, notes, and subtasks persist
 - verify settings persist
+
+### 8. Deadline Reminders
+
+- open `Settings`
+- enable deadline reminders
+- set a short lead time such as `5` minutes
+- create or edit a task with a due date a few minutes ahead
+- verify the operating system asks for notification permission if needed
+- verify a reminder appears at the expected time
+- complete or archive the task and verify the reminder no longer fires
 
 ## Release QA
 

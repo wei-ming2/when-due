@@ -9,6 +9,7 @@ When Due is a local-first desktop app for tracking deadlines without the bloat o
 
 - Quick capture with natural shorthand like `Chem hw ~2h @24 2300`
 - Views for `Today`, `Upcoming`, `Overdue`, and `All`
+- Desktop deadline reminders with a configurable lead time
 - Priority and tag filters in the sidebar
 - Inline row editing for due date, estimate, tags, and priority
 - Expandable notes and subtasks when a task needs more context
@@ -31,7 +32,7 @@ When Due is intentionally narrow:
 Prerequisites:
 
 - Node.js 18+
-- Rust 1.70+
+- Rust 1.77.2+
 
 ```bash
 git clone https://github.com/wei-ming2/when-due.git
@@ -65,6 +66,7 @@ Build outputs:
 4. Click a task row to open notes and subtasks.
 5. Double-click the task title to rename it inline.
 6. Click the due, estimate, tag, or priority pills to edit them directly.
+7. Turn on deadline reminders in Settings if you want OS notifications before due times.
 
 ## Suggested Input Format
 

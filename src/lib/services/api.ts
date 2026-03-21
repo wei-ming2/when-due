@@ -54,15 +54,13 @@ export const taskApi = {
     includeCompleted: boolean = false
   ): Promise<Task[]> {
     try {
-      console.log(`[API] Calling get_tasks with filter: ${filter}, includeCompleted: ${includeCompleted}`);
       const result = await invoke<{ tasks: Task[] }>('get_tasks', {
         filter,
         includeCompleted,
       });
-      console.log(`[API] get_tasks response:`, result);
       return result.tasks;
     } catch (error) {
-      console.error('[API] get_tasks failed:', error);
+      console.error('Failed to load tasks from the backend:', error);
       throw error;
     }
   },

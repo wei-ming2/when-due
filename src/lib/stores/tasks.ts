@@ -1,6 +1,7 @@
 // Reactive store for tasks
 import { writable, derived } from 'svelte/store';
 import { taskApi, type Task, type TaskUpdateInput } from '../services/api';
+import { queueDeadlineNotificationSync } from '../services/notifications';
 import { shouldIncludeTask, sortTasksForDeadlineList } from '../utils/task-list';
 
 function createTasksStore() {
@@ -15,12 +16,10 @@ function createTasksStore() {
       includeCompleted: boolean = false
     ) {
       try {
-        console.log(`[Tasks Store] Loading tasks with filter: ${filter}, includeCompleted: ${includeCompleted}`);
         const tasks = await taskApi.getTasks(filter, includeCompleted);
-        console.log(`[Tasks Store] Loaded ${tasks.length} tasks:`, tasks);
         set(tasks);
       } catch (error) {
-        console.error('[Tasks Store] Failed to load tasks:', error);
+        console.error('Failed to load tasks:', error);
         throw error;
       }
     },
@@ -83,6 +82,7 @@ function createTasksStore() {
           });
         }
 
+        queueDeadlineNotificationSync();
         return newTask;
       } catch (error) {
         if (optimisticTask) {
@@ -104,6 +104,7 @@ function createTasksStore() {
             task.id === id ? { ...task, ...normalizedUpdates, updatedAt: result.updatedAt } : task
           )
         );
+        queueDeadlineNotificationSync();
       } catch (error) {
         console.error('Failed to update task:', error);
         throw error;
@@ -115,6 +116,7 @@ function createTasksStore() {
       try {
         await taskApi.deleteTask(id);
         update((tasks) => tasks.filter((task) => task.id !== id));
+        queueDeadlineNotificationSync();
       } catch (error) {
         console.error('Failed to delete task:', error);
         throw error;
@@ -138,6 +140,7 @@ function createTasksStore() {
               : task
           )
         );
+        queueDeadlineNotificationSync();
       } catch (error) {
         console.error('Failed to toggle task completion:', error);
         throw error;

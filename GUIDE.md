@@ -120,6 +120,16 @@ Completed tasks can be:
 
 You can control completed-task behavior in Settings.
 
+## Deadline Reminders
+
+When Due can send desktop notifications for active tasks with deadlines.
+
+- enable reminders in `Settings`
+- choose how many minutes before the deadline you want to be reminded
+- set reminder lead time to `0` if you want a notification right when something is due
+
+When reminders are enabled, the app keeps scheduled notifications in sync as tasks are added, edited, completed, or archived.
+
 ## Keyboard Shortcuts
 
 - `/` focuses quick add

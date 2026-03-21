@@ -17,6 +17,7 @@ Version `0.1.0` is the first public release candidate. It focuses on the core lo
 
 - Natural quick capture like `Chem hw ~2h @24 2300`
 - Deadline views for `Today`, `Upcoming`, `Overdue`, and `All`
+- Desktop deadline reminders with configurable lead time
 - Sidebar filters for priority and tags
 - Inline row editing for due date, time estimate, tags, and priority
 - Expandable notes and subtasks
@@ -52,5 +53,6 @@ The most useful feedback for `v0.1.0` is:
 - missed or confusing deadlines
 - anything that feels slower than it should
 - editing friction in the task list
+- reminders not arriving or arriving at the wrong time
 - visual rough edges on macOS or Windows
 - persistence problems after restart

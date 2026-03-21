@@ -6,6 +6,7 @@
   import type { Task } from '../services/api';
   import { uiState, type FilterMode } from '../stores/ui';
   import { taskApi } from '../services/api';
+  import { queueDeadlineNotificationSync } from '../services/notifications';
   import TaskCard from './TaskCard.svelte';
   import TaskDetailPanel from './TaskDetailPanel.svelte';
   import QuickAddInput from './QuickAddInput.svelte';
@@ -48,6 +49,7 @@
     try {
       await taskApi.archiveCompletedTasks($uiState.completedRetentionDays);
       await tasks.loadTasks($uiState.filterMode, true);
+      queueDeadlineNotificationSync();
     } catch (error) {
       console.error('[FocusDashboard] Failed to sync task query:', error);
     }

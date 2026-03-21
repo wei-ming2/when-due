@@ -15,7 +15,7 @@ cd when-due
 
 - Xcode Command Line Tools
 - Node.js 18+
-- Rust 1.70+
+- Rust 1.77.2+
 
 Example setup:
 
@@ -34,7 +34,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ### Linux
 
 - Node.js 18+
-- Rust 1.70+
+- Rust 1.77.2+
 - WebKitGTK development packages required by Tauri
 
 ## Install Dependencies

@@ -2,8 +2,19 @@
   import { onDestroy } from 'svelte';
   import { uiState } from '../stores/ui';
   import type { ThemeMode } from '../stores/ui';
+  import {
+    ensureDeadlineNotificationPermission,
+    getDeadlineNotificationPermission,
+    queueDeadlineNotificationSync,
+  } from '../services/notifications';
+  import type { ReminderPermissionState } from '../utils/reminders';
 
   export let isOpen = false;
+
+  let notificationsBusy = false;
+  let notificationPermission: ReminderPermissionState = 'default';
+  let notificationStatus = '';
+  let wasOpen = false;
 
   const handleClose = () => {
     isOpen = false;
@@ -21,7 +32,7 @@
   };
 
   // Sync theme when theme mode changes
-  const unsubscribe = uiState.subscribe(({ themeMode, currentTheme }) => {
+  const unsubscribe = uiState.subscribe(({ themeMode }) => {
     if (typeof window !== 'undefined') {
       if (themeMode === 'system') {
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -41,11 +52,78 @@
     uiState.setCompletedRetentionDays(Number(target.value));
   }
 
+  async function refreshNotificationPermission() {
+    notificationPermission = await getDeadlineNotificationPermission();
+    notificationStatus =
+      notificationPermission === 'granted'
+        ? $uiState.notificationsEnabled
+          ? $uiState.notificationLeadMinutes > 0
+            ? `When Due will remind you ${$uiState.notificationLeadMinutes} minutes before a deadline.`
+            : 'When Due will remind you exactly when a deadline is due.'
+          : 'Deadline reminders are allowed on this device.'
+        : notificationPermission === 'denied'
+          ? 'Notifications are blocked. Re-enable them in system settings to use deadline reminders.'
+          : notificationPermission === 'unsupported'
+            ? 'Notifications are not available in this environment.'
+            : 'Enable reminders to let When Due ask for notification permission.';
+  }
+
+  async function handleNotificationsChange(e: Event) {
+    const target = e.currentTarget as HTMLInputElement;
+    const enabled = target.checked;
+
+    if (!enabled) {
+      uiState.setNotificationsEnabled(false);
+      notificationStatus = 'Deadline reminders are turned off.';
+      queueDeadlineNotificationSync({ delayMs: 0 });
+      return;
+    }
+
+    notificationsBusy = true;
+    const granted = await ensureDeadlineNotificationPermission(true);
+    await refreshNotificationPermission();
+
+    if (granted) {
+      uiState.setNotificationsEnabled(true);
+      notificationStatus =
+        $uiState.notificationLeadMinutes > 0
+          ? `When Due will remind you ${$uiState.notificationLeadMinutes} minutes before a deadline.`
+          : 'When Due will remind you exactly when a deadline is due.';
+      queueDeadlineNotificationSync({ delayMs: 0 });
+    } else {
+      uiState.setNotificationsEnabled(false);
+    }
+
+    notificationsBusy = false;
+  }
+
+  function handleLeadMinutesChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const minutes = Number(target.value);
+    uiState.setNotificationLeadMinutes(minutes);
+    if ($uiState.notificationsEnabled) {
+      notificationStatus =
+        minutes > 0
+          ? `When Due will remind you ${minutes} minutes before a deadline.`
+          : 'When Due will remind you exactly when a deadline is due.';
+      queueDeadlineNotificationSync({ delayMs: 0 });
+    }
+  }
+
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       handleClose();
     }
   };
+
+  $: if (isOpen && !wasOpen) {
+    wasOpen = true;
+    void refreshNotificationPermission();
+  }
+
+  $: if (!isOpen) {
+    wasOpen = false;
+  }
 </script>
 
 {#if isOpen}
@@ -88,6 +166,38 @@
                 System
               </button>
             </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Deadline Reminders</h3>
+          <div class="setting-item">
+            <label for="enable-notifications">
+              <input
+                type="checkbox"
+                id="enable-notifications"
+                checked={$uiState.notificationsEnabled}
+                disabled={notificationsBusy || notificationPermission === 'unsupported'}
+                on:change={handleNotificationsChange}
+              />
+              Enable deadline reminders
+            </label>
+            <p class="setting-hint">{notificationStatus}</p>
+          </div>
+
+          <div class="setting-item">
+            <label for="notification-lead-minutes">Remind me before a deadline (minutes)</label>
+            <input
+              id="notification-lead-minutes"
+              type="number"
+              min="0"
+              max="43200"
+              step="5"
+              value={$uiState.notificationLeadMinutes}
+              disabled={!$uiState.notificationsEnabled}
+              on:change={handleLeadMinutesChange}
+            />
+            <p class="setting-hint">Use `0` to notify right when the deadline is due.</p>
           </div>
         </div>
 
@@ -249,6 +359,11 @@
   .setting-item input[type='checkbox'] {
     margin-right: var(--spacing-sm);
     cursor: pointer;
+  }
+
+  .setting-item input[type='number']:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .theme-toggle {

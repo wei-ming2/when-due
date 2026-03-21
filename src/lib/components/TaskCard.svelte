@@ -470,7 +470,15 @@
           aria-label="Change priority"
           title={`Priority: ${getPriorityLabel(task.priority)}`}
         >
-          {getPriorityLabel(task.priority).charAt(0)}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M6 4v16" stroke-width="1.8" stroke-linecap="round" />
+            <path
+              d="M6 5h9l-2 4 2 4H6"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </button>
 
         {#if showPriorityMenu}
@@ -872,8 +880,14 @@
     border-radius: 50%;
     border: 1.5px solid;
     background: transparent;
-    font-size: 0.82rem;
-    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .priority-badge svg {
+    width: 15px;
+    height: 15px;
   }
 
   .priority-badge.high {

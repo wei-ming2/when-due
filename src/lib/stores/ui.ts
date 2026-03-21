@@ -10,6 +10,8 @@ interface UIState {
   currentTheme: 'light' | 'dark';
   completedRetentionDays: number;
   completedSectionExpanded: boolean;
+  notificationsEnabled: boolean;
+  notificationLeadMinutes: number;
   selectedCategoryId?: string;
   selectedPriorities: Set<string>; // 'high' | 'medium' | 'low'
   showCompleted: boolean;
@@ -17,7 +19,7 @@ interface UIState {
 }
 
 function createUIStore() {
-  const STORAGE_VERSION = 4;
+  const STORAGE_VERSION = 5;
 
   // Initialize from browser storage if available
   let initialState: UIState = {
@@ -26,6 +28,8 @@ function createUIStore() {
     currentTheme: getSystemTheme(),
     completedRetentionDays: 7,
     completedSectionExpanded: false,
+    notificationsEnabled: false,
+    notificationLeadMinutes: 30,
     selectedPriorities: new Set<string>(),
     showCompleted: false,
     sidebarVisible: true,
@@ -56,6 +60,15 @@ function createUIStore() {
         }
         if (typeof parsed.completedSectionExpanded !== 'boolean') {
           parsed.completedSectionExpanded = false;
+        }
+        if (typeof parsed.notificationsEnabled !== 'boolean') {
+          parsed.notificationsEnabled = false;
+        }
+        if (
+          typeof parsed.notificationLeadMinutes !== 'number' ||
+          Number.isNaN(parsed.notificationLeadMinutes)
+        ) {
+          parsed.notificationLeadMinutes = 30;
         }
         if (!parsed.filterMode || !['today', 'week', 'overdue', 'all'].includes(parsed.filterMode)) {
           parsed.filterMode = 'all';
@@ -123,6 +136,15 @@ function createUIStore() {
     setCompletedRetentionDays(days: number) {
       const nextDays = Math.min(Math.max(Math.round(days), 0), 365);
       update((state) => ({ ...state, completedRetentionDays: nextDays }));
+    },
+
+    setNotificationsEnabled(enabled: boolean) {
+      update((state) => ({ ...state, notificationsEnabled: enabled }));
+    },
+
+    setNotificationLeadMinutes(minutes: number) {
+      const nextMinutes = Math.min(Math.max(Math.round(minutes), 0), 60 * 24 * 30);
+      update((state) => ({ ...state, notificationLeadMinutes: nextMinutes }));
     },
 
     setSelectedCategory(categoryId?: string) {

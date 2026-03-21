@@ -6,6 +6,8 @@ All notable changes to When Due are documented here.
 
 - Docs cleanup for GitHub release
 - Release workflow and cross-platform packaging polish
+- Desktop deadline reminders with configurable lead time
+- Reminder timing tests and notification-permission settings
 
 ## [0.1.0] - 2026-03-20
 
