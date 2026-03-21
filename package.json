@@ -1,6 +1,6 @@
 {
   "name": "when-due",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "description": "A focused desktop deadline tracker with a clear sense of when things are due",
   "repository": {

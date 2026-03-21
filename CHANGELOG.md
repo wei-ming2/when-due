@@ -12,6 +12,20 @@ All notable changes to When Due are documented here.
 - Focus returning to the task row after closing the notes panel
 - Whiter app icon artwork and regenerated bundle icons
 
+## [0.1.2] - 2026-03-22
+
+### Changed
+
+- Bumped app, package, and Tauri bundle version to `0.1.2`
+- Simplified the floating notes panel by removing the extra close button and empty toolbar
+
+### Fixed
+
+- Inline save failures now surface in-app feedback instead of failing silently
+- Notes panel focus returns to the originating task row after close
+- Icon artwork uses a cleaner white background for the app bundle
+- Tag order now persists after relaunch instead of being reset by repeated migrations
+
 ## [0.1.0] - 2026-03-20
 
 ### Added

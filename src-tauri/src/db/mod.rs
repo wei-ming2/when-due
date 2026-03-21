@@ -46,6 +46,23 @@ pub fn get_connection(app: &AppHandle) -> Result<Connection, Box<dyn std::error:
     Ok(conn)
 }
 
+fn current_schema_version(conn: &Connection) -> Result<i32, rusqlite::Error> {
+    conn.query_row(
+        "SELECT COALESCE(MAX(version), 0) FROM schema_version;",
+        [],
+        |row| row.get(0),
+    )
+}
+
+fn set_schema_version(conn: &Connection, version: i32) -> Result<(), rusqlite::Error> {
+    conn.execute("DELETE FROM schema_version;", [])?;
+    conn.execute(
+        "INSERT INTO schema_version (version) VALUES (?1);",
+        rusqlite::params![version],
+    )?;
+    Ok(())
+}
+
 fn apply_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     // Create schema_version table if it doesn't exist
     conn.execute(
@@ -53,11 +70,7 @@ fn apply_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         [],
     )?;
 
-    let version: i32 = conn
-        .query_row("SELECT version FROM schema_version LIMIT 1;", [], |row| {
-            row.get(0)
-        })
-        .unwrap_or(0);
+    let version = current_schema_version(conn).unwrap_or(0);
 
     if version < 1 {
         apply_migration_v1(conn)?;
@@ -174,10 +187,7 @@ fn apply_migration_v1(conn: &Connection) -> Result<(), rusqlite::Error> {
     )?;
 
     // Update version
-    conn.execute(
-        "INSERT OR REPLACE INTO schema_version (version) VALUES (1);",
-        [],
-    )?;
+    set_schema_version(conn, 1)?;
 
     Ok(())
 }
@@ -210,10 +220,7 @@ fn apply_migration_v2(conn: &Connection) -> Result<(), rusqlite::Error> {
         [],
     )?;
 
-    conn.execute(
-        "INSERT OR REPLACE INTO schema_version (version) VALUES (2);",
-        [],
-    )?;
+    set_schema_version(conn, 2)?;
 
     Ok(())
 }
@@ -255,10 +262,7 @@ fn apply_migration_v3(conn: &Connection) -> Result<(), rusqlite::Error> {
         [],
     )?;
 
-    conn.execute(
-        "INSERT OR REPLACE INTO schema_version (version) VALUES (3);",
-        [],
-    )?;
+    set_schema_version(conn, 3)?;
 
     Ok(())
 }
@@ -271,4 +275,29 @@ fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, r
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(columns.iter().any(|existing| existing == column))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn schema_version_uses_latest_row() {
+        let conn = Connection::open_in_memory().expect("in-memory db");
+        conn.execute(
+            "CREATE TABLE schema_version (version INTEGER PRIMARY KEY DEFAULT 1);",
+            [],
+        )
+        .expect("create schema_version");
+
+        conn.execute("INSERT INTO schema_version (version) VALUES (1);", [])
+            .expect("insert v1");
+        conn.execute("INSERT INTO schema_version (version) VALUES (2);", [])
+            .expect("insert v2");
+        conn.execute("INSERT INTO schema_version (version) VALUES (3);", [])
+            .expect("insert v3");
+
+        let version = current_schema_version(&conn).expect("read schema version");
+        assert_eq!(version, 3);
+    }
 }

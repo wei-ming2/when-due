@@ -1,4 +1,4 @@
-# Release Notes: When Due v0.1.0
+# Release Notes: When Due v0.1.2
 
 This file is the draft body for the first GitHub release.
 
@@ -6,7 +6,7 @@ This file is the draft body for the first GitHub release.
 
 When Due is a lightweight desktop app for tracking deadlines with less friction than a full task-management suite.
 
-Version `0.1.0` is the first public release candidate. It focuses on the core loop:
+Version `0.1.2` focuses on the current polished deadline-tracking core:
 
 - capture a task quickly
 - see what is due
@@ -27,7 +27,7 @@ Version `0.1.0` is the first public release candidate. It focuses on the core lo
 
 ## Release Assets
 
-Planned assets for `v0.1.0`:
+Planned assets for `v0.1.2`:
 
 - macOS `.dmg`
 - Windows `.exe` installer
@@ -48,7 +48,7 @@ If Linux artifacts are included later, they should be added here only after they
 
 ## Feedback Focus
 
-The most useful feedback for `v0.1.0` is:
+The most useful feedback for `v0.1.2` is:
 
 - missed or confusing deadlines
 - anything that feels slower than it should

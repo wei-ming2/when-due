@@ -110,7 +110,7 @@ Manual QA guidance lives in [TESTING.md](./TESTING.md).
 
 ## Release Status
 
-The repository is being prepared for the first GitHub release of `When Due v0.1.0`.
+The repository is being prepared for the `When Due v0.1.2` GitHub release.
 
 The current release focus is:
 
