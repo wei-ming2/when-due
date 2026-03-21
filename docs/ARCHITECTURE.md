@@ -35,9 +35,11 @@ SQLite
 - `TaskCard.svelte`
   The primary task row. Supports row-level editing for title, due date, estimate, tags, and priority.
 - `TaskDetailPanel.svelte`
-  Expanded notes and subtasks only. It is no longer the main task-editing surface.
+  A floating notes-and-nested-tasks panel. It is no longer the main task-editing surface.
 - `SettingsPanel.svelte`
   Theme, deadline-reminder settings, completed-task visibility, and archive-retention settings.
+- `ToastStack.svelte`
+  Lightweight in-app feedback for failed saves and other recoverable errors.
 
 ### Frontend State
 
@@ -47,6 +49,8 @@ SQLite
   Holds tag data.
 - `ui.ts`
   Holds view filters, reminder settings, theme choice, completed visibility, and sidebar state.
+- `toasts.ts`
+  Holds transient in-app feedback messages.
 - `notifications.ts`
   Keeps OS deadline reminders in sync with the current task data and user settings.
 
@@ -56,8 +60,10 @@ The UI follows progressive disclosure:
 
 - row-level metadata is edited on the row
 - notes and subtasks are expanded only when needed
+- notes and nested tasks open in a small floating panel instead of stretching the list
 - filters live in the sidebar
 - quick add stays always visible and keyboard-friendly
+- failed saves surface in-app feedback instead of only logging to the console
 
 ## Backend
 
@@ -95,7 +101,8 @@ These commands are registered in `src-tauri/src/main.rs`.
 1. User edits directly from the task row
 2. Row-level editors call `tasks.update(...)`
 3. The store applies optimistic local updates after the backend responds
-4. Notes and subtasks are managed separately inside the expanded panel
+4. Row-level failures surface a toast and keep the editor honest if persistence fails
+5. Notes and subtasks are managed separately inside the floating panel
 5. Reminder schedules are refreshed if the due date changes
 
 ## Platform Support

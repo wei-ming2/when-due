@@ -95,7 +95,8 @@ fn row_to_json(row: &rusqlite::Row) -> rusqlite::Result<serde_json::Value> {
       "createdAt": row.get::<_, String>(10)?,
       "updatedAt": row.get::<_, String>(11)?,
       "subtaskCount": row.get::<_, i64>(13)?,
-      "subtaskCompletedCount": row.get::<_, i64>(14)?
+      "subtaskCompletedCount": row.get::<_, i64>(14)?,
+      "attachmentCount": row.get::<_, i64>(15)?
     }))
 }
 
@@ -119,7 +120,8 @@ pub async fn get_tasks(
     let select_fields = "SELECT tasks.id, tasks.title, tasks.description, tasks.dueDate, tasks.priority, tasks.timeEstimate, tasks.categoryId, tasks.status, tasks.isFocus, tasks.completedAt, tasks.createdAt, tasks.updatedAt,
       COALESCE((SELECT GROUP_CONCAT(categoryId, ',') FROM task_tags WHERE taskId = tasks.id), '') AS categoryIds,
       (SELECT COUNT(*) FROM subtasks WHERE taskId = tasks.id) AS subtaskCount,
-      (SELECT COUNT(*) FROM subtasks WHERE taskId = tasks.id AND completed = TRUE) AS subtaskCompletedCount
+      (SELECT COUNT(*) FROM subtasks WHERE taskId = tasks.id AND completed = TRUE) AS subtaskCompletedCount,
+      (SELECT COUNT(*) FROM task_attachments WHERE taskId = tasks.id) AS attachmentCount
       FROM tasks";
 
     // Execute query based on filter
@@ -246,7 +248,8 @@ pub async fn create_task(
       "createdAt": now,
       "updatedAt": now,
       "subtaskCount": 0,
-      "subtaskCompletedCount": 0
+      "subtaskCompletedCount": 0,
+      "attachmentCount": 0
     }))
 }
 
@@ -412,8 +415,9 @@ pub async fn search_tasks(
     "SELECT tasks.id, tasks.title, tasks.description, tasks.dueDate, tasks.priority, tasks.timeEstimate, tasks.categoryId, tasks.status, tasks.isFocus, tasks.completedAt, tasks.createdAt, tasks.updatedAt,
       COALESCE((SELECT GROUP_CONCAT(categoryId, ',') FROM task_tags WHERE taskId = tasks.id), '') AS categoryIds,
       (SELECT COUNT(*) FROM subtasks WHERE taskId = tasks.id) AS subtaskCount,
-      (SELECT COUNT(*) FROM subtasks WHERE taskId = tasks.id AND completed = TRUE) AS subtaskCompletedCount
-     FROM tasks 
+      (SELECT COUNT(*) FROM subtasks WHERE taskId = tasks.id AND completed = TRUE) AS subtaskCompletedCount,
+      (SELECT COUNT(*) FROM task_attachments WHERE taskId = tasks.id) AS attachmentCount
+     FROM tasks
      WHERE status = 'active' AND (title LIKE ? OR description LIKE ?)
      ORDER BY dueDate ASC, priority DESC
      LIMIT ?"

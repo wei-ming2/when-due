@@ -202,6 +202,39 @@
         </div>
 
         <div class="settings-group">
+          <h3>Task Defaults</h3>
+          <div class="setting-item">
+            <div class="setting-label">Default priority for new tasks</div>
+            <div class="theme-toggle" role="group" aria-label="Default priority">
+              <button
+                class="theme-btn low"
+                class:active={$uiState.defaultPriority === 'low'}
+                on:click={() => uiState.setDefaultPriority('low')}
+              >
+                Low
+              </button>
+              <button
+                class="theme-btn medium"
+                class:active={$uiState.defaultPriority === 'medium'}
+                on:click={() => uiState.setDefaultPriority('medium')}
+              >
+                Medium
+              </button>
+              <button
+                class="theme-btn high"
+                class:active={$uiState.defaultPriority === 'high'}
+                on:click={() => uiState.setDefaultPriority('high')}
+              >
+                High
+              </button>
+            </div>
+            <p class="setting-hint">
+              This is used when quick add does not include `!high`, `!medium`, or `!low`.
+            </p>
+          </div>
+        </div>
+
+        <div class="settings-group">
           <h3>Task Lifecycle</h3>
           <div class="setting-item">
             <label for="show-completed">
@@ -392,6 +425,27 @@
     background: var(--accent-light);
     color: var(--accent);
     box-shadow: 0 10px 18px rgba(37, 99, 235, 0.12);
+  }
+
+  .theme-btn.low.active {
+    border-color: var(--success);
+    background: color-mix(in srgb, var(--success) 12%, white);
+    color: var(--success);
+    box-shadow: 0 10px 18px rgba(16, 185, 129, 0.12);
+  }
+
+  .theme-btn.medium.active {
+    border-color: var(--warning);
+    background: color-mix(in srgb, var(--warning) 14%, white);
+    color: var(--warning);
+    box-shadow: 0 10px 18px rgba(245, 158, 11, 0.14);
+  }
+
+  .theme-btn.high.active {
+    border-color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, white);
+    color: var(--danger);
+    box-shadow: 0 10px 18px rgba(239, 68, 68, 0.12);
   }
 
   .setting-item input[type='number'] {

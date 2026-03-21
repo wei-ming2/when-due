@@ -8,12 +8,15 @@ When Due is a local-first desktop app for tracking deadlines without the bloat o
 ## What It Does
 
 - Quick capture with natural shorthand like `Chem hw ~2h @24 2300`
+- Quick add defaults for priority, plus sorting by due date, date added, or priority
 - Views for `Today`, `Upcoming`, `Overdue`, and `All`
 - Desktop deadline reminders with a configurable lead time
 - Priority and tag filters in the sidebar
+- Multiple tags per task, with simple up/down tag ordering in the sidebar
 - Inline row editing for due date, estimate, tags, and priority
-- Expandable notes and subtasks when a task needs more context
+- A small floating notes panel for text, images, and nested tasks when a task needs more context
 - Completed-task hiding with configurable auto-archive retention
+- In-app save feedback for failed edits instead of silent reverts
 - Local SQLite storage with no cloud dependency
 - macOS app bundle support and Windows tester builds
 
@@ -23,7 +26,7 @@ When Due is intentionally narrow:
 
 - It is a deadline tracker first
 - It is not trying to be a project suite, team planner, or knowledge base
-- Notes and subtasks exist to support deadlines, not to turn the app into a workspace
+- Notes and nested tasks exist to support deadlines, not to turn the app into a workspace
 
 ## Quick Start
 
@@ -62,10 +65,10 @@ Build outputs:
 
 1. Press `/` or `Cmd/Ctrl+K` to jump to quick add.
 2. Type a task like `Math hw ~1h @tomorrow 9pm !high`.
-3. Use the sidebar to narrow by view, priority, or tag.
-4. Click a task row to open notes and subtasks.
+3. Use the sidebar to narrow by view, priority, or tag, then use the top-right sort menu when you want a different ordering.
+4. Use the notes button on a task to open a small floating notes panel for notes, images, and nested tasks.
 5. Double-click the task title to rename it inline.
-6. Click the due, estimate, tag, or priority pills to edit them directly.
+6. Click the due, estimate, tag, or priority controls to edit them directly.
 7. Turn on deadline reminders in Settings if you want OS notifications before due times.
 
 ## Suggested Input Format

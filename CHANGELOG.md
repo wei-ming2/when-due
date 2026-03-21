@@ -8,6 +8,9 @@ All notable changes to When Due are documented here.
 - Release workflow and cross-platform packaging polish
 - Desktop deadline reminders with configurable lead time
 - Reminder timing tests and notification-permission settings
+- In-app error toasts for failed task, notes, and tag edits
+- Focus returning to the task row after closing the notes panel
+- Whiter app icon artwork and regenerated bundle icons
 
 ## [0.1.0] - 2026-03-20
 

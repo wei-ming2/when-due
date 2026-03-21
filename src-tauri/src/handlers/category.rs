@@ -10,8 +10,9 @@ fn category_row_to_json(row: &rusqlite::Row) -> rusqlite::Result<serde_json::Val
       "name": row.get::<_, String>(1)?,
       "color": row.get::<_, String>(2)?,
       "icon": row.get::<_, Option<String>>(3)?,
-      "createdAt": row.get::<_, String>(4)?,
-      "updatedAt": row.get::<_, String>(5)?
+      "sortOrder": row.get::<_, i64>(4)?,
+      "createdAt": row.get::<_, String>(5)?,
+      "updatedAt": row.get::<_, String>(6)?
     }))
 }
 
@@ -21,7 +22,7 @@ pub async fn get_categories(app: AppHandle) -> Result<serde_json::Value, String>
 
     let mut stmt = conn
         .prepare(
-            "SELECT id, name, color, icon, createdAt, updatedAt FROM categories ORDER BY name ASC",
+            "SELECT id, name, color, icon, sortOrder, createdAt, updatedAt FROM categories ORDER BY sortOrder ASC, name ASC",
         )
         .map_err(|e| e.to_string())?;
 
@@ -50,10 +51,17 @@ pub async fn create_category(
 
     let id = Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
+    let sort_order: i64 = conn
+        .query_row(
+            "SELECT COALESCE(MAX(sortOrder), -1) + 1 FROM categories",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
 
     conn.execute(
-    "INSERT INTO categories (id, name, color, icon, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
-    rusqlite::params![&id, &name, &color, icon, &now, &now],
+    "INSERT INTO categories (id, name, color, icon, sortOrder, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    rusqlite::params![&id, &name, &color, icon, sort_order, &now, &now],
   ).map_err(|e| e.to_string())?;
 
     Ok(serde_json::json!({
@@ -61,6 +69,7 @@ pub async fn create_category(
       "name": name,
       "color": color,
       "icon": icon,
+      "sortOrder": sort_order,
       "createdAt": now,
       "updatedAt": now
     }))
@@ -73,6 +82,7 @@ pub async fn update_category(
     name: Option<String>,
     color: Option<String>,
     icon: Option<String>,
+    sort_order: Option<i64>,
 ) -> Result<serde_json::Value, String> {
     let conn = db::get_connection(&app).map_err(|e| e.to_string())?;
 
@@ -103,6 +113,35 @@ pub async fn update_category(
         )
         .map_err(|e| e.to_string())?;
     }
+    if let Some(next_sort_order) = sort_order {
+        conn.execute(
+            "UPDATE categories SET sortOrder = ?, updatedAt = ? WHERE id = ?",
+            rusqlite::params![next_sort_order, &now, &id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(serde_json::json!({ "success": true, "updatedAt": now }))
+}
+
+#[tauri::command]
+pub async fn reorder_categories(
+    app: AppHandle,
+    ordered_ids: Vec<String>,
+) -> Result<serde_json::Value, String> {
+    let mut conn = db::get_connection(&app).map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let now = Utc::now().to_rfc3339();
+
+    for (index, category_id) in ordered_ids.iter().enumerate() {
+        tx.execute(
+            "UPDATE categories SET sortOrder = ?, updatedAt = ? WHERE id = ?",
+            rusqlite::params![index as i64, &now, category_id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    tx.commit().map_err(|e| e.to_string())?;
 
     Ok(serde_json::json!({ "success": true, "updatedAt": now }))
 }

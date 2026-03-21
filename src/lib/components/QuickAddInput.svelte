@@ -3,6 +3,7 @@
   import { tasks } from '../stores/tasks';
   import { uiState, type FilterMode } from '../stores/ui';
   import { categories } from '../stores/categories';
+  import { showErrorToast } from '../stores/toasts';
   import type { Task } from '../services/api';
   import { parseTaskInput } from '../utils/deadline-parser';
   import { formatDeadlineDisplay } from '../utils/date-formatter';
@@ -32,11 +33,11 @@
   }
 
   function getDefaultPriority(): 'low' | 'medium' | 'high' {
-    if ($uiState.selectedPriorities.size !== 1) return 'medium';
+    if ($uiState.selectedPriorities.size !== 1) return $uiState.defaultPriority;
     if ($uiState.selectedPriorities.has('high')) return 'high';
     if ($uiState.selectedPriorities.has('medium')) return 'medium';
     if ($uiState.selectedPriorities.has('low')) return 'low';
-    return 'medium';
+    return $uiState.defaultPriority;
   }
 
   async function submitParsedTask(
@@ -75,6 +76,7 @@
       dispatch('created', { task: newTask });
     } catch (error) {
       console.error('Failed to add task:', error);
+      showErrorToast('Could not add task.');
     } finally {
       pendingAdds = Math.max(0, pendingAdds - 1);
       isAdding = pendingAdds > 0;
@@ -134,9 +136,11 @@
 
   $: activeTag = $categories.find((category) => category.id === $uiState.selectedCategoryId);
   $: activePriority =
-    $uiState.selectedPriorities.size === 1 ? getDefaultPriority() : 'medium';
+    $uiState.selectedPriorities.size === 1 ? getDefaultPriority() : $uiState.defaultPriority;
   $: hasDefaults =
-    Boolean($uiState.selectedCategoryId) || $uiState.selectedPriorities.size === 1;
+    Boolean($uiState.selectedCategoryId) ||
+    $uiState.selectedPriorities.size === 1 ||
+    $uiState.defaultPriority !== 'medium';
   $: {
     if (!title.trim()) {
       previewTitle = '';
@@ -161,6 +165,10 @@
       {#if $uiState.selectedPriorities.size === 1}
         <span class="default-pill priority {activePriority}">
           Priority: {getPriorityLabel(activePriority)}
+        </span>
+      {:else if $uiState.defaultPriority !== 'medium'}
+        <span class="default-pill priority {activePriority}">
+          Default: {getPriorityLabel(activePriority)}
         </span>
       {/if}
       {#if activeTag}

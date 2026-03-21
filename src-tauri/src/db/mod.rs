@@ -67,6 +67,10 @@ fn apply_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         apply_migration_v2(conn)?;
     }
 
+    if version < 3 {
+        apply_migration_v3(conn)?;
+    }
+
     Ok(())
 }
 
@@ -78,6 +82,7 @@ fn apply_migration_v1(conn: &Connection) -> Result<(), rusqlite::Error> {
       name TEXT NOT NULL UNIQUE,
       color TEXT NOT NULL,
       icon TEXT,
+      sortOrder INTEGER NOT NULL DEFAULT 0,
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );",
@@ -117,6 +122,18 @@ fn apply_migration_v1(conn: &Connection) -> Result<(), rusqlite::Error> {
         [],
     )?;
 
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS task_attachments (
+      id TEXT PRIMARY KEY,
+      taskId TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      mimeType TEXT NOT NULL,
+      filePath TEXT NOT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );",
+        [],
+    )?;
+
     // Create recurring_rules table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS recurring_rules (
@@ -149,6 +166,10 @@ fn apply_migration_v1(conn: &Connection) -> Result<(), rusqlite::Error> {
     )?;
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_subtasks_taskId ON subtasks(taskId);",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_task_attachments_taskId ON task_attachments(taskId);",
         [],
     )?;
 
@@ -195,4 +216,59 @@ fn apply_migration_v2(conn: &Connection) -> Result<(), rusqlite::Error> {
     )?;
 
     Ok(())
+}
+
+fn apply_migration_v3(conn: &Connection) -> Result<(), rusqlite::Error> {
+    if !column_exists(conn, "categories", "sortOrder")? {
+        conn.execute(
+            "ALTER TABLE categories ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0;",
+            [],
+        )?;
+    }
+
+    let mut stmt = conn.prepare("SELECT id FROM categories ORDER BY createdAt ASC, name ASC")?;
+    let category_ids = stmt
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    for (index, category_id) in category_ids.iter().enumerate() {
+        conn.execute(
+            "UPDATE categories SET sortOrder = ? WHERE id = ?",
+            rusqlite::params![index as i64, category_id],
+        )?;
+    }
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS task_attachments (
+      id TEXT PRIMARY KEY,
+      taskId TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      mimeType TEXT NOT NULL,
+      filePath TEXT NOT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_task_attachments_taskId ON task_attachments(taskId);",
+        [],
+    )?;
+
+    conn.execute(
+        "INSERT OR REPLACE INTO schema_version (version) VALUES (3);",
+        [],
+    )?;
+
+    Ok(())
+}
+
+fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, rusqlite::Error> {
+    let pragma = format!("PRAGMA table_info({table})");
+    let mut stmt = conn.prepare(&pragma)?;
+    let columns = stmt
+        .query_map([], |row| row.get::<_, String>(1))?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(columns.iter().any(|existing| existing == column))
 }

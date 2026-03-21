@@ -1,10 +1,9 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { cubicOut } from 'svelte/easing';
   import { fade, fly } from 'svelte/transition';
   import { visibleTasks, tasks } from '../stores/tasks';
   import type { Task } from '../services/api';
-  import { uiState, type FilterMode } from '../stores/ui';
+  import { uiState, type FilterMode, type SortMode } from '../stores/ui';
   import { taskApi } from '../services/api';
   import { queueDeadlineNotificationSync } from '../services/notifications';
   import TaskCard from './TaskCard.svelte';
@@ -15,9 +14,13 @@
   export let onOpenSettings: (() => void) | undefined;
 
   let quickAddComponent: any = null;
+  let detailPanelComponent: { requestClose?: () => Promise<void> } | null = null;
   let hasMounted = false;
   let lastQueryKey = '';
   let selectedTaskId: string | null = null;
+  let showSortMenu = false;
+  let isResizingSidebar = false;
+  let sidebarWrapperEl: HTMLDivElement | null = null;
   let queryRefreshInterval: ReturnType<typeof setInterval> | null = null;
   let midnightRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -34,10 +37,16 @@
     overdue: 'You are fully caught up',
     all: 'No tasks found yet',
   };
+  const sortOptions: Array<{ id: SortMode; label: string; hint: string }> = [
+    { id: 'due-date', label: 'Due date', hint: 'Soonest first' },
+    { id: 'date-added', label: 'Date added', hint: 'Newest first' },
+    { id: 'priority', label: 'Priority', hint: 'High to low' },
+  ];
 
   $: queryKey = `${$uiState.filterMode}:${$uiState.completedRetentionDays}`;
   $: activeTasks = $visibleTasks.filter((task) => task.status !== 'completed');
   $: completedTasks = $visibleTasks.filter((task) => task.status === 'completed');
+  $: selectedTask = selectedTaskId ? $tasks.find((task) => task.id === selectedTaskId) ?? null : null;
   $: if (selectedTaskId && !$tasks.find((task) => task.id === selectedTaskId)) {
     selectedTaskId = null;
   }
@@ -87,6 +96,57 @@
     void syncQuery(`${$uiState.filterMode}:${$uiState.completedRetentionDays}`, true);
   }
 
+  function startSidebarResize(e: MouseEvent) {
+    if (!$uiState.sidebarVisible) return;
+
+    e.preventDefault();
+    isResizingSidebar = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }
+
+  function handleSidebarResizeMove(e: MouseEvent) {
+    if (!isResizingSidebar || !sidebarWrapperEl) return;
+
+    const { left } = sidebarWrapperEl.getBoundingClientRect();
+    uiState.setSidebarWidth(e.clientX - left);
+  }
+
+  function stopSidebarResize() {
+    if (!isResizingSidebar) return;
+
+    isResizingSidebar = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+
+  function toggleSortMenu() {
+    showSortMenu = !showSortMenu;
+  }
+
+  function closeSortMenu() {
+    showSortMenu = false;
+  }
+
+  function setSortMode(mode: SortMode) {
+    uiState.setSortMode(mode);
+    closeSortMenu();
+  }
+
+  async function handleDetailClose() {
+    const closingTaskId = selectedTaskId;
+    detailPanelComponent = null;
+    selectedTaskId = null;
+    await tick();
+
+    if (!closingTaskId) return;
+
+    const trigger = document.querySelector(
+      `[data-task-notes-toggle="${closingTaskId}"]`
+    ) as HTMLButtonElement | null;
+    trigger?.focus();
+  }
+
   async function handleTaskCreated(event: CustomEvent<{ task: Task }>) {
     const { task } = event.detail;
     await tick();
@@ -125,28 +185,55 @@
         e.preventDefault();
         quickAddComponent?.focus();
       }
+      if (e.key === 'Escape') {
+        closeSortMenu();
+      }
     };
 
     document.addEventListener('visibilitychange', handleForegroundSync);
     window.addEventListener('focus', handleForegroundSync);
     window.addEventListener('keydown', handleGlobalKeydown);
+    window.addEventListener('mousemove', handleSidebarResizeMove);
+    window.addEventListener('mouseup', stopSidebarResize);
     return () => {
       clearMaintenanceTimers();
+      stopSidebarResize();
       document.removeEventListener('visibilitychange', handleForegroundSync);
       window.removeEventListener('focus', handleForegroundSync);
       window.removeEventListener('keydown', handleGlobalKeydown);
+      window.removeEventListener('mousemove', handleSidebarResizeMove);
+      window.removeEventListener('mouseup', stopSidebarResize);
     };
   });
 
   $: if (hasMounted) {
     void syncQuery(queryKey);
   }
+
+  $: currentSortOption =
+    sortOptions.find((option) => option.id === $uiState.sortMode) ?? sortOptions[0];
 </script>
 
 <div class="focus-dashboard">
-  <div class="sidebar-wrapper" class:hidden={!$uiState.sidebarVisible}>
+  <div
+    bind:this={sidebarWrapperEl}
+    class="sidebar-wrapper"
+    class:hidden={!$uiState.sidebarVisible}
+    style={`--sidebar-width: ${$uiState.sidebarWidth}px;`}
+  >
     <FilterSidebar />
   </div>
+
+  <button
+    class="sidebar-resize-handle"
+    class:hidden={!$uiState.sidebarVisible}
+    class:active={isResizingSidebar}
+    on:mousedown={startSidebarResize}
+    aria-label="Resize filters sidebar"
+    title="Resize filters sidebar"
+  >
+    <span class="sidebar-resize-grip" aria-hidden="true"></span>
+  </button>
 
   <div class="dashboard-main">
     <div class="dashboard-header">
@@ -168,6 +255,47 @@
         </div>
       </div>
       <div class="header-actions">
+        <div class="sort-menu-wrap">
+          <button
+            class="sort-trigger"
+            class:open={showSortMenu}
+            on:click={toggleSortMenu}
+            aria-haspopup="menu"
+            aria-expanded={showSortMenu}
+            title={`Sort by ${currentSortOption.label.toLowerCase()}`}
+          >
+            <span class="sort-trigger-copy">
+              <span class="sort-trigger-label">Sort</span>
+              <span class="sort-trigger-value">{currentSortOption.label}</span>
+            </span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="m7 10 5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+
+          {#if showSortMenu}
+            <div class="sort-menu" role="menu" aria-label="Sort tasks">
+              {#each sortOptions as option}
+                <button
+                  class="sort-menu-option"
+                  class:active={$uiState.sortMode === option.id}
+                  on:click={() => setSortMode(option.id)}
+                >
+                  <span class="sort-option-copy">
+                    <span class="sort-option-title">{option.label}</span>
+                    <span class="sort-option-hint">{option.hint}</span>
+                  </span>
+                  {#if $uiState.sortMode === option.id}
+                    <svg class="sort-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M20 6 9 17l-5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  {/if}
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+
         <button class="settings-btn" on:click={() => onOpenSettings?.()} aria-label="Open settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3" />
@@ -207,15 +335,6 @@
                   expanded={selectedTaskId === task.id}
                   on:open={() => (selectedTaskId = selectedTaskId === task.id ? null : task.id)}
                 />
-                {#if selectedTaskId === task.id}
-                  <div
-                    class="task-detail-wrap"
-                    in:fly={{ y: 6, duration: 180, easing: cubicOut }}
-                    out:fade={{ duration: 120 }}
-                  >
-                    <TaskDetailPanel task={task} on:close={() => (selectedTaskId = null)} />
-                  </div>
-                {/if}
               </div>
             {/each}
 
@@ -245,15 +364,6 @@
                           expanded={selectedTaskId === task.id}
                           on:open={() => (selectedTaskId = selectedTaskId === task.id ? null : task.id)}
                         />
-                        {#if selectedTaskId === task.id}
-                          <div
-                            class="task-detail-wrap"
-                            in:fly={{ y: 6, duration: 180, easing: cubicOut }}
-                            out:fade={{ duration: 120 }}
-                          >
-                            <TaskDetailPanel task={task} on:close={() => (selectedTaskId = null)} />
-                          </div>
-                        {/if}
                       </div>
                     {/each}
                   </div>
@@ -272,6 +382,34 @@
 
 </div>
 
+{#if selectedTask}
+  <div class="detail-overlay" role="presentation" transition:fade={{ duration: 120 }}>
+    <button
+      class="detail-backdrop"
+      on:click={() => void detailPanelComponent?.requestClose?.()}
+      aria-label="Close notes and nested tasks"
+    ></button>
+    <div
+      class="detail-popover"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Details for ${selectedTask.title}`}
+      in:fly={{ y: 10, duration: 170 }}
+      out:fade={{ duration: 100 }}
+    >
+      <TaskDetailPanel
+        bind:this={detailPanelComponent}
+        task={selectedTask}
+        on:close={() => void handleDetailClose()}
+      />
+    </div>
+  </div>
+{/if}
+
+{#if showSortMenu}
+  <button class="sort-backdrop" on:click={closeSortMenu} aria-label="Close sort menu"></button>
+{/if}
+
 <style>
   .focus-dashboard {
     display: flex;
@@ -282,8 +420,8 @@
   }
 
   .sidebar-wrapper {
-    width: 220px;
-    min-width: 220px;
+    width: var(--sidebar-width, 220px);
+    min-width: var(--sidebar-width, 220px);
     transition:
       width var(--panel-transition),
       min-width var(--panel-transition),
@@ -297,9 +435,60 @@
   .sidebar-wrapper.hidden {
     width: 0;
     min-width: 0;
-    transform: translateX(-220px);
+    transform: translateX(calc(-1 * var(--sidebar-width, 220px)));
     opacity: 0;
     pointer-events: none;
+  }
+
+  .sidebar-resize-handle {
+    width: 12px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: col-resize;
+    flex-shrink: 0;
+    position: relative;
+    transition: background-color var(--transition-fast), opacity var(--transition-fast);
+  }
+
+  .sidebar-resize-handle.hidden {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sidebar-resize-handle::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to right,
+      transparent 0,
+      transparent 4px,
+      color-mix(in srgb, var(--border-color) 82%, transparent) 4px,
+      color-mix(in srgb, var(--border-color) 82%, transparent) 6px,
+      transparent 6px,
+      transparent 100%
+    );
+  }
+
+  .sidebar-resize-handle:hover::before,
+  .sidebar-resize-handle.active::before {
+    background: linear-gradient(
+      to right,
+      transparent 0,
+      transparent 4px,
+      color-mix(in srgb, var(--accent) 75%, transparent) 4px,
+      color-mix(in srgb, var(--accent) 75%, transparent) 6px,
+      transparent 6px,
+      transparent 100%
+    );
+  }
+
+  .sidebar-resize-grip {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .dashboard-main {
@@ -385,6 +574,172 @@
     flex-shrink: 0;
   }
 
+  .sort-menu-wrap {
+    position: relative;
+    z-index: 30;
+  }
+
+  .sort-trigger {
+    min-height: 44px;
+    padding: 0 12px 0 14px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--shadow-sm);
+    transition:
+      border-color var(--panel-transition),
+      background-color var(--panel-transition),
+      color var(--panel-transition),
+      box-shadow var(--panel-transition);
+  }
+
+  .sort-trigger:hover,
+  .sort-trigger.open {
+    border-color: color-mix(in srgb, var(--accent) 28%, var(--border-color));
+    background: color-mix(in srgb, var(--bg-secondary) 92%, white);
+    box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
+  }
+
+  .sort-trigger-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .sort-trigger-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .sort-trigger-value {
+    font-size: 0.84rem;
+    font-weight: 650;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  .sort-trigger svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+  }
+
+  .sort-trigger.open svg {
+    transform: rotate(180deg);
+  }
+
+  .sort-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 220px;
+    padding: 8px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.14);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sort-menu-option {
+    width: 100%;
+    min-height: 52px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .sort-menu-option:hover {
+    background: var(--bg-secondary);
+  }
+
+  .sort-menu-option.active {
+    background: color-mix(in srgb, var(--accent-light) 60%, white);
+    border-color: color-mix(in srgb, var(--accent) 22%, var(--border-color));
+  }
+
+  .sort-option-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .sort-option-title {
+    font-size: 0.84rem;
+    font-weight: 650;
+    color: var(--text-primary);
+  }
+
+  .sort-option-hint {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+  }
+
+  .sort-option-check {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .sort-backdrop {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    border: none;
+    z-index: 20;
+  }
+
+  .detail-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 28px 20px;
+    background: rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(8px);
+  }
+
+  .detail-backdrop {
+    position: absolute;
+    inset: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .detail-popover {
+    position: relative;
+    width: min(620px, calc(100vw - 40px));
+    max-height: min(78vh, 760px);
+    margin-top: clamp(44px, 8vh, 88px);
+    overflow: auto;
+    border-radius: calc(var(--radius-lg) + 4px);
+    box-shadow: 0 28px 56px rgba(15, 23, 42, 0.18);
+  }
+
   .capacity-stat {
     display: flex;
     flex-direction: column;
@@ -444,10 +799,6 @@
   .task-item {
     transform-origin: top center;
     position: relative;
-    overflow: visible;
-  }
-
-  .task-detail-wrap {
     overflow: visible;
   }
 
@@ -589,6 +940,10 @@
       flex-direction: row;
     }
 
+    .sidebar-resize-handle {
+      display: none;
+    }
+
     .sidebar-toggle {
       display: flex;
       align-items: center;
@@ -656,6 +1011,13 @@
 
     .quick-add-section h3 {
       font-size: var(--font-size-md);
+    }
+  }
+
+  @media (max-width: 900px) {
+    .header-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
   }
 </style>

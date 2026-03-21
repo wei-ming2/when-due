@@ -91,15 +91,35 @@ You can edit most task metadata directly from the task row:
 - click the estimate chip or clock icon to edit estimate
 - click tag chips or the tag icon to edit tags
 - click the priority badge to change priority
+- click the notes button to open notes, images, and nested tasks
 
-### Expanded Task
+### Defaults While Adding
 
-Expanding a task is mainly for:
+Quick add can inherit context from the UI:
 
-- description / notes
-- subtasks
+- the selected tag becomes the default tag for new tasks
+- the selected priority becomes the default priority for new tasks
+- if no priority filter is selected, Settings can define the default priority
 
-The expanded section should be treated like extra context, not the main editing screen.
+### Sorting
+
+Use the sort dropdown in the top-right header to switch between:
+
+- `Due date (soonest first)`
+- `Date added (newest first)`
+- `Priority (high to low)`
+
+### Notes And Nested Tasks
+
+Opening the notes panel is mainly for:
+
+- notes and images
+- nested tasks
+
+It opens as a small floating panel, auto-saves notes as you type, and closes when you click away or press `Escape`.
+If a save fails, the panel stays open and the app shows an in-app error message instead of pretending the change worked.
+
+Nested tasks also stay visible under the parent task in the main list, so you can see the breakdown without reopening the notes section.
 
 ## Filters
 
@@ -109,6 +129,7 @@ Use the sidebar to:
 - filter by one priority at a time
 - filter by a tag
 - manage tags
+- move tags up or down in edit mode
 
 ## Completed Tasks
 
@@ -130,13 +151,24 @@ When Due can send desktop notifications for active tasks with deadlines.
 
 When reminders are enabled, the app keeps scheduled notifications in sync as tasks are added, edited, completed, or archived.
 
+## Images
+
+You can add images to a task from the notes section by:
+
+- dragging image files into the note area, including from Finder
+- pasting an image directly into the notes panel
+- clicking `Add image`
+
+Images are stored locally with your app data.
+
 ## Keyboard Shortcuts
 
 - `/` focuses quick add
 - `Cmd/Ctrl + K` focuses quick add
 - `Enter` in quick add submits the task
 - `Enter` in subtask input adds a subtask
-- `Escape` closes the expanded task section
+- `Escape` closes the notes panel
+- `Escape` closes any open row editor
 
 ## Notes On The Current Product
 

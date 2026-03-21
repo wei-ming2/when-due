@@ -12,6 +12,7 @@ export interface Task {
   categoryIds?: string[];
   subtaskCount?: number;
   subtaskCompletedCount?: number;
+  attachmentCount?: number;
   status: 'active' | 'completed' | 'archived';
   completedAt?: string;
   createdAt: string;
@@ -33,6 +34,7 @@ export interface Category {
   name: string;
   color: string;
   icon?: string;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +47,15 @@ export interface Subtask {
   order: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TaskAttachment {
+  id: string;
+  taskId: string;
+  name: string;
+  mimeType: string;
+  filePath: string;
+  createdAt: string;
 }
 
 // Task API calls
@@ -167,12 +178,20 @@ export const categoryApi = {
       name: updates.name,
       color: updates.color,
       icon: updates.icon,
+      sortOrder: updates.sortOrder,
     });
     return result;
   },
 
   async deleteCategory(id: string): Promise<{ success: boolean }> {
     const result = await invoke<{ success: boolean }>('delete_category', { id });
+    return result;
+  },
+
+  async reorderCategories(orderedIds: string[]): Promise<{ success: boolean; updatedAt: string }> {
+    const result = await invoke<{ success: boolean; updatedAt: string }>('reorder_categories', {
+      orderedIds,
+    });
     return result;
   },
 };
@@ -215,5 +234,37 @@ export const subtaskApi = {
   async deleteSubtask(id: string): Promise<{ success: boolean }> {
     const result = await invoke<{ success: boolean }>('delete_subtask', { id });
     return result;
+  },
+};
+
+export const attachmentApi = {
+  async getTaskAttachments(taskId: string): Promise<TaskAttachment[]> {
+    const result = await invoke<{ attachments: TaskAttachment[] }>('get_task_attachments', {
+      taskId,
+    });
+    return result.attachments;
+  },
+
+  async getTaskAttachmentBytes(id: string): Promise<Uint8Array> {
+    const result = await invoke<{ bytes: number[] }>('get_task_attachment_bytes', { id });
+    return new Uint8Array(result.bytes);
+  },
+
+  async addTaskAttachment(
+    taskId: string,
+    fileName: string,
+    mimeType: string,
+    bytes: Uint8Array
+  ): Promise<TaskAttachment> {
+    return await invoke<TaskAttachment>('add_task_attachment', {
+      taskId,
+      fileName,
+      mimeType,
+      bytes: Array.from(bytes),
+    });
+  },
+
+  async deleteTaskAttachment(id: string): Promise<{ success: boolean }> {
+    return await invoke<{ success: boolean }>('delete_task_attachment', { id });
   },
 };

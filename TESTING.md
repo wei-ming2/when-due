@@ -43,6 +43,7 @@ Verify:
 - due date is parsed correctly
 - estimate is parsed correctly
 - priority defaults behave correctly
+- selected tag defaults are applied when a tag filter is active
 
 ### 3. Row Editing
 
@@ -53,32 +54,39 @@ For an existing task:
 - click the estimate pill and update the estimate
 - click the tag pill and add or remove multiple tags
 - change priority
+- change the sort mode in the header dropdown and verify the task list order updates immediately
 
 Verify each change persists after closing and reopening the app.
+If a save fails, verify the app shows an error toast instead of silently leaving the row in a misleading state.
 
-### 4. Notes And Subtasks
+### 4. Notes, Images, And Nested Tasks
 
 - open a task
 - add a description
-- add several subtasks
-- complete one subtask
-- rename a subtask
-- delete a subtask
+- drag an image from Finder into the notes panel, paste one, or add one with `Add image`
+- add several nested tasks
+- complete one nested task
+- rename a nested task
+- delete a nested task
 
 Verify:
 
 - notes auto-save
+- image thumbnails appear, are not cropped awkwardly, persist after reopening the panel, and can be removed
 - subtask counts update in the collapsed row
-- completed subtasks sort below active subtasks
+- nested tasks remain visible under the parent task after you collapse the notes section
+- completed nested tasks sort below active nested tasks
+- closing the notes panel returns focus to the same task row
 
 ### 5. Filters
 
 - switch between `Today`, `Upcoming`, `Overdue`, and `All`
 - filter by one priority
 - filter by one tag
+- move tags up and down in edit mode
 - clear filters
 
-Verify the task list updates immediately and predictably.
+Verify the task list updates immediately and predictably, and verify tag order still matches after quitting and relaunching.
 
 ### 6. Completion Lifecycle
 
@@ -91,7 +99,7 @@ Verify the task list updates immediately and predictably.
 
 - quit the app completely
 - relaunch
-- verify tasks, tags, notes, and subtasks persist
+- verify tasks, tag order, notes, images, and nested tasks persist
 - verify settings persist
 
 ### 8. Deadline Reminders

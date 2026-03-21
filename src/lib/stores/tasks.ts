@@ -2,7 +2,7 @@
 import { writable, derived } from 'svelte/store';
 import { taskApi, type Task, type TaskUpdateInput } from '../services/api';
 import { queueDeadlineNotificationSync } from '../services/notifications';
-import { shouldIncludeTask, sortTasksForDeadlineList } from '../utils/task-list';
+import { shouldIncludeTask, sortTasksForDeadlineListByMode } from '../utils/task-list';
 
 function createTasksStore() {
   const { subscribe, set, update } = writable<Task[]>([]);
@@ -55,6 +55,7 @@ function createTasksStore() {
               updatedAt: now,
               subtaskCount: 0,
               subtaskCompletedCount: 0,
+              attachmentCount: 0,
             }
           : null;
 
@@ -184,7 +185,7 @@ export const visibleTasks = derived(
       })
     );
 
-    return sortTasksForDeadlineList(filtered);
+    return sortTasksForDeadlineListByMode(filtered, $uiState.sortMode);
   }
 );
 

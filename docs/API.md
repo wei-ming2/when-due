@@ -18,6 +18,7 @@ interface Task {
   categoryIds?: string[];
   subtaskCount?: number;
   subtaskCompletedCount?: number;
+  attachmentCount?: number;
   status: 'active' | 'completed' | 'archived';
   completedAt?: string;
   createdAt: string;
@@ -33,6 +34,7 @@ interface Category {
   name: string;
   color: string;
   icon?: string;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -49,6 +51,19 @@ interface Subtask {
   order: number;
   createdAt: string;
   updatedAt: string;
+}
+```
+
+### TaskAttachment
+
+```ts
+interface TaskAttachment {
+  id: string;
+  taskId: string;
+  name: string;
+  mimeType: string;
+  filePath: string;
+  createdAt: string;
 }
 ```
 
@@ -145,6 +160,7 @@ Returns:
 - `create_category`
 - `update_category`
 - `delete_category`
+- `reorder_categories`
 
 Categories are used as tags in the current product.
 
@@ -156,6 +172,13 @@ Categories are used as tags in the current product.
 - `update_subtask`
 - `delete_subtask`
 
+## Attachment Commands
+
+- `add_task_attachment`
+- `get_task_attachments`
+- `get_task_attachment_bytes`
+- `delete_task_attachment`
+
 ## Utility Commands
 
 - `get_app_version`
@@ -166,3 +189,4 @@ Categories are used as tags in the current product.
 - The frontend wrapper in `src/lib/services/api.ts` handles the camelCase-to-snake_case argument mapping expected by the Rust commands.
 - The current UI does not expose every backend capability as a dedicated screen. The API is slightly broader than the visible surface.
 - Desktop deadline reminders are handled in the frontend by `src/lib/services/notifications.ts` using Tauri's notification plugin rather than custom app commands.
+- The notes panel loads attachment bytes through the API and renders previews locally, rather than depending on raw filesystem paths in the UI.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Task } from '../services/api';
-import { shouldIncludeTask, sortTasksForDeadlineList } from './task-list';
+import { shouldIncludeTask, sortTasksForDeadlineList, sortTasksForDeadlineListByMode } from './task-list';
 
 function buildTask(overrides: Partial<Task>): Task {
   return {
@@ -95,5 +95,43 @@ describe('task list sorting', () => {
     ]);
 
     expect(tasks.map((task) => task.id)).toEqual(['recent', 'old']);
+  });
+
+  it('can sort active tasks by newest created date', () => {
+    const tasks = sortTasksForDeadlineListByMode(
+      [
+        buildTask({
+          id: 'older',
+          createdAt: '2026-03-18T08:00:00.000Z',
+        }),
+        buildTask({
+          id: 'newer',
+          createdAt: '2026-03-19T09:00:00.000Z',
+        }),
+      ],
+      'date-added'
+    );
+
+    expect(tasks.map((task) => task.id)).toEqual(['newer', 'older']);
+  });
+
+  it('can sort active tasks by priority first', () => {
+    const tasks = sortTasksForDeadlineListByMode(
+      [
+        buildTask({
+          id: 'low',
+          priority: 'low',
+          dueDate: '2026-03-19T08:00:00.000Z',
+        }),
+        buildTask({
+          id: 'high',
+          priority: 'high',
+          dueDate: '2026-03-20T08:00:00.000Z',
+        }),
+      ],
+      'priority'
+    );
+
+    expect(tasks.map((task) => task.id)).toEqual(['high', 'low']);
   });
 });

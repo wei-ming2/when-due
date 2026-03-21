@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import FocusDashboard from '$lib/components/FocusDashboard.svelte';
   import SettingsPanel from '$lib/components/SettingsPanel.svelte';
+  import ToastStack from '$lib/components/ToastStack.svelte';
   import { categories } from '$lib/stores/categories';
 
   let showSettings = false;
@@ -36,6 +37,7 @@
     <FocusDashboard onOpenSettings={toggleSettings} />
   </div>
   <SettingsPanel bind:isOpen={showSettings} />
+  <ToastStack />
 </main>
 
 <style>

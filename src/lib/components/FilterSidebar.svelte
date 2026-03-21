@@ -1,6 +1,7 @@
 <script lang="ts">
   import { categories } from '../stores/categories';
   import { uiState, type FilterMode } from '../stores/ui';
+  import { showErrorToast } from '../stores/toasts';
   import type { Category } from '../services/api';
 
   const filterModes: Array<{ id: FilterMode; label: string }> = [
@@ -10,7 +11,6 @@
     { id: 'all', label: 'All' },
   ];
   const tagColors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9'];
-
   let isEditingTags = false;
   let newTagName = '';
   let tagDrafts: Record<string, string> = {};
@@ -62,6 +62,7 @@
       newTagName = '';
     } catch (error) {
       tagError = 'Could not create tag. Names must be unique.';
+      showErrorToast('Could not create tag.');
     }
   }
 
@@ -80,6 +81,7 @@
     } catch (error) {
       tagError = 'Could not rename tag. Names must be unique.';
       tagDrafts = { ...tagDrafts, [category.id]: category.name };
+      showErrorToast('Could not rename tag.');
     }
   }
 
@@ -100,6 +102,7 @@
       tagDrafts = nextDrafts;
     } catch (error) {
       tagError = 'Could not delete tag.';
+      showErrorToast('Could not delete tag.');
     }
   }
 
@@ -113,6 +116,28 @@
     if (e.key === 'Escape') {
       e.preventDefault();
       restoreTag(category);
+    }
+  }
+
+  async function moveTag(categoryId: string, direction: 'up' | 'down') {
+    const orderedIds = $categories.map((category) => category.id);
+    const index = orderedIds.indexOf(categoryId);
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    if (index === -1 || targetIndex < 0 || targetIndex >= orderedIds.length) {
+      return;
+    }
+
+    const nextOrderedIds = [...orderedIds];
+    const [movedCategoryId] = nextOrderedIds.splice(index, 1);
+    nextOrderedIds.splice(targetIndex, 0, movedCategoryId);
+
+    try {
+      tagError = '';
+      await categories.reorder(nextOrderedIds);
+    } catch (error) {
+      tagError = 'Could not move tag.';
+      showErrorToast('Could not move tag.');
     }
   }
 
@@ -179,19 +204,44 @@
     </div>
 
     {#if isEditingTags}
-      <div class="tag-editor">
-        {#each $categories as category}
-          <div class="editable-tag">
-            <span class="tag-dot" style={`background: ${category.color}`}></span>
-            <input
-              class="editable-tag-input"
-              bind:value={tagDrafts[category.id]}
-              on:blur={() => saveTag(category)}
-              on:keydown={(e) => handleTagKeydown(e, category)}
-            />
-            <button class="editable-tag-delete" on:click={() => deleteTag(category.id)} aria-label={`Delete ${category.name}`}>
-              ×
-            </button>
+      <div class="tag-editor" role="list" aria-label="Editable tags">
+        {#each $categories as category, index}
+          <div class="editable-tag" role="listitem">
+            <div class="editable-tag-body">
+              <span class="tag-dot" style={`background: ${category.color}`}></span>
+              <input
+                class="editable-tag-input"
+                bind:value={tagDrafts[category.id]}
+                on:blur={() => saveTag(category)}
+                on:keydown={(e) => handleTagKeydown(e, category)}
+              />
+            </div>
+
+            <div class="tag-actions">
+              <button
+                class="tag-order-btn"
+                type="button"
+                on:click={() => void moveTag(category.id, 'up')}
+                aria-label={`Move ${category.name} up`}
+                disabled={index === 0}
+                title="Move up"
+              >
+                ↑
+              </button>
+              <button
+                class="tag-order-btn"
+                type="button"
+                on:click={() => void moveTag(category.id, 'down')}
+                aria-label={`Move ${category.name} down`}
+                disabled={index === $categories.length - 1}
+                title="Move down"
+              >
+                ↓
+              </button>
+              <button class="editable-tag-delete" on:click={() => deleteTag(category.id)} aria-label={`Delete ${category.name}`}>
+                ×
+              </button>
+            </div>
           </div>
         {/each}
 
@@ -242,8 +292,8 @@
 
 <style>
   .filter-sidebar {
-    width: 220px;
-    min-width: 220px;
+    width: 100%;
+    min-width: 0;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     padding: calc(var(--spacing-lg) + 16px) var(--spacing-lg) var(--spacing-lg);
@@ -342,6 +392,18 @@
     gap: var(--spacing-sm);
   }
 
+  .tag-list,
+  .tag-editor {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag-editor {
+    flex-direction: column;
+    gap: 0;
+  }
+
   .priority-btn {
     padding: var(--spacing-sm) var(--spacing-md);
     border: 2px solid var(--border-color);
@@ -389,23 +451,15 @@
     color: white;
   }
 
-  .tag-list,
-  .tag-editor {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
   .tag-chip,
   .editable-tag {
-    width: 100%;
     min-width: 0;
-    min-height: 42px;
+    min-height: 38px;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0.7rem 0.85rem;
-    border-radius: var(--radius-md);
+    padding: 0.55rem 0.8rem;
+    border-radius: var(--radius-pill);
     border: 1px solid var(--border-color);
     background: var(--bg-primary);
     color: var(--text-primary);
@@ -441,19 +495,71 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 110px;
   }
 
   .editable-tag {
-    padding: 0.7rem 0.85rem;
+    width: 100%;
+    gap: 10px;
+    justify-content: space-between;
+    transition:
+      transform var(--transition-fast),
+      opacity var(--transition-fast),
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast);
   }
 
   .editable-tag.new {
     border-style: dashed;
+    cursor: text;
+  }
+
+  .editable-tag-body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tag-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .tag-order-btn {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tag-order-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent-light) 70%, white);
+  }
+
+  .tag-order-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
   }
 
   .editable-tag-input {
-    flex: 1;
+    width: auto;
     min-width: 0;
+    flex: 1;
     padding: 0;
     border: none;
     background: transparent;
@@ -468,8 +574,8 @@
   }
 
   .editable-tag-delete {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     padding: 0;
     border: none;
     border-radius: 50%;
@@ -536,9 +642,9 @@
       flex-direction: row;
     }
 
-    .tag-list {
-      flex-direction: row;
-      flex-wrap: wrap;
+    .tag-list,
+    .tag-editor {
+      width: 100%;
     }
 
     .tag-chip {

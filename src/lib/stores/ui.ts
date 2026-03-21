@@ -3,36 +3,43 @@ import { writable } from 'svelte/store';
 
 export type FilterMode = 'today' | 'week' | 'overdue' | 'all';
 export type ThemeMode = 'light' | 'dark' | 'system';
+export type SortMode = 'due-date' | 'date-added' | 'priority';
 
 interface UIState {
   filterMode: FilterMode;
+  sortMode: SortMode;
   themeMode: ThemeMode;
   currentTheme: 'light' | 'dark';
   completedRetentionDays: number;
   completedSectionExpanded: boolean;
   notificationsEnabled: boolean;
   notificationLeadMinutes: number;
+  defaultPriority: 'low' | 'medium' | 'high';
   selectedCategoryId?: string;
   selectedPriorities: Set<string>; // 'high' | 'medium' | 'low'
   showCompleted: boolean;
   sidebarVisible: boolean; // Show/hide filter sidebar
+  sidebarWidth: number;
 }
 
 function createUIStore() {
-  const STORAGE_VERSION = 5;
+  const STORAGE_VERSION = 6;
 
   // Initialize from browser storage if available
   let initialState: UIState = {
     filterMode: 'all',
+    sortMode: 'due-date',
     themeMode: 'system',
     currentTheme: getSystemTheme(),
     completedRetentionDays: 7,
     completedSectionExpanded: false,
     notificationsEnabled: false,
     notificationLeadMinutes: 30,
+    defaultPriority: 'medium',
     selectedPriorities: new Set<string>(),
     showCompleted: false,
     sidebarVisible: true,
+    sidebarWidth: 220,
   };
 
   // Try to load from localStorage
@@ -72,6 +79,18 @@ function createUIStore() {
         }
         if (!parsed.filterMode || !['today', 'week', 'overdue', 'all'].includes(parsed.filterMode)) {
           parsed.filterMode = 'all';
+        }
+        if (
+          !parsed.sortMode ||
+          !['due-date', 'date-added', 'priority'].includes(parsed.sortMode)
+        ) {
+          parsed.sortMode = 'due-date';
+        }
+        if (!parsed.defaultPriority || !['low', 'medium', 'high'].includes(parsed.defaultPriority)) {
+          parsed.defaultPriority = 'medium';
+        }
+        if (typeof parsed.sidebarWidth !== 'number' || Number.isNaN(parsed.sidebarWidth)) {
+          parsed.sidebarWidth = 220;
         }
         if (storageVersion < STORAGE_VERSION && parsed.filterMode === 'today') {
           parsed.filterMode = 'all';
@@ -121,6 +140,10 @@ function createUIStore() {
       update((state) => ({ ...state, filterMode: mode }));
     },
 
+    setSortMode(mode: SortMode) {
+      update((state) => ({ ...state, sortMode: mode }));
+    },
+
     setThemeMode(mode: ThemeMode) {
       update((state) => ({
         ...state,
@@ -145,6 +168,10 @@ function createUIStore() {
     setNotificationLeadMinutes(minutes: number) {
       const nextMinutes = Math.min(Math.max(Math.round(minutes), 0), 60 * 24 * 30);
       update((state) => ({ ...state, notificationLeadMinutes: nextMinutes }));
+    },
+
+    setDefaultPriority(priority: 'low' | 'medium' | 'high') {
+      update((state) => ({ ...state, defaultPriority: priority }));
     },
 
     setSelectedCategory(categoryId?: string) {
@@ -187,6 +214,11 @@ function createUIStore() {
 
     setSidebarVisible(visible: boolean) {
       update((state) => ({ ...state, sidebarVisible: visible }));
+    },
+
+    setSidebarWidth(width: number) {
+      const nextWidth = Math.min(Math.max(Math.round(width), 180), 360);
+      update((state) => ({ ...state, sidebarWidth: nextWidth }));
     },
   };
 }

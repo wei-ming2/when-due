@@ -24,11 +24,17 @@ fn main() {
             handlers::task::toggle_task_complete,
             handlers::task::archive_completed_tasks,
             handlers::task::search_tasks,
+            // Attachment handlers
+            handlers::attachment::get_task_attachments,
+            handlers::attachment::get_task_attachment_bytes,
+            handlers::attachment::add_task_attachment,
+            handlers::attachment::delete_task_attachment,
             // Category handlers
             handlers::category::get_categories,
             handlers::category::create_category,
             handlers::category::update_category,
             handlers::category::delete_category,
+            handlers::category::reorder_categories,
             // Subtask handlers
             handlers::subtask::add_subtask,
             handlers::subtask::get_subtasks,
